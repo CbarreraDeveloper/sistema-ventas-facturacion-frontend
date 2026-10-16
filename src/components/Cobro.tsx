@@ -91,12 +91,22 @@ export function useCobro(total: number, medios: OpcionCatalogo[]) {
   }
 }
 
-export function SeccionCobro({ cobro, detalle }: { cobro: EstadoCobro; detalle: string }) {
+export function SeccionCobro({
+  cobro,
+  detalle,
+  titulo = 'Cobro',
+  conVuelto = true,
+}: {
+  cobro: EstadoCobro
+  detalle: string
+  titulo?: string
+  conVuelto?: boolean
+}) {
   return (
     <div className="ficha cobro">
       <div className="seccion-cabecera">
         <div>
-          <h3>Cobro</h3>
+          <h3>{titulo}</h3>
           <p>{detalle}</p>
         </div>
         {cobro.otros.length > 0 ? (
@@ -160,17 +170,19 @@ export function SeccionCobro({ cobro, detalle }: { cobro: EstadoCobro; detalle: 
               <td>Efectivo</td>
               <td className={cobro.efectivoACobrar < 0 ? 'numero falta' : 'numero'}>{dinero(cobro.efectivoACobrar)}</td>
               <td>
-                <input
-                  className="monto"
-                  inputMode="numeric"
-                  aria-label="Efectivo recibido"
-                  value={cobro.recibido}
-                  placeholder="Recibido (opcional)"
-                  onChange={(event) => cobro.setRecibido(mascaraMonto(event.target.value, 0))}
-                />
+                {conVuelto ? (
+                  <input
+                    className="monto"
+                    inputMode="numeric"
+                    aria-label="Efectivo recibido"
+                    value={cobro.recibido}
+                    placeholder="Recibido (opcional)"
+                    onChange={(event) => cobro.setRecibido(mascaraMonto(event.target.value, 0))}
+                  />
+                ) : null}
               </td>
               <td className="numero vuelto">
-                {cobro.vuelto == null ? null : cobro.vuelto < 0 ? (
+                {!conVuelto || cobro.vuelto == null ? null : cobro.vuelto < 0 ? (
                   <span className="falta">Faltan {dinero(-cobro.vuelto)}</span>
                 ) : (
                   <strong>Vuelto {dinero(cobro.vuelto)}</strong>

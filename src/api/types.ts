@@ -97,6 +97,9 @@ export type Compra = {
   totalIva5: number
   totalIva10: number
   total: number
+  plazoDias: number | null
+  vencimiento: string | null
+  saldo: number
   lineas: CompraLinea[]
 }
 
@@ -212,7 +215,7 @@ export type FacturaPendiente = {
 
 export type MovimientoCuenta = {
   fecha: string
-  tipo: 'FACTURA' | 'RECIBO' | 'NOTA_CREDITO'
+  tipo: 'FACTURA' | 'RECIBO' | 'NOTA_CREDITO' | 'COMPRA' | 'ORDEN_PAGO'
   id: number
   numero: string
   detalle: string
@@ -249,6 +252,55 @@ export type EstadoCuenta = {
   pendientes: FacturaPendiente[]
   movimientos: MovimientoCuenta[]
   recibos: Recibo[]
+}
+
+export type SaldoProveedor = {
+  proveedorId: number
+  proveedor: string
+  documento: string | null
+  saldo: number
+  vencido: number
+  compras: number
+  diasAtraso: number
+}
+
+export type CompraPendiente = {
+  id: number
+  numeroComprobante: string
+  fecha: string
+  vencimiento: string | null
+  total: number
+  pagado: number
+  saldo: number
+  diasAtraso: number
+}
+
+export type OrdenPago = {
+  id: number
+  numero: string
+  fecha: string
+  proveedorId: number
+  proveedor: string
+  proveedorDocumento: string | null
+  total: number
+  estado: 'CONFIRMADO' | 'ANULADO'
+  observacion: string | null
+  usuario: string | null
+  aplicaciones: { comprobanteId: number; numeroComprobante: string; monto: number }[]
+  pagos: PagoLinea[]
+}
+
+export type EstadoProveedor = {
+  proveedorId: number
+  proveedor: string
+  documento: string | null
+  telefono: string | null
+  plazoDias: number | null
+  saldo: number
+  vencido: number
+  pendientes: CompraPendiente[]
+  movimientos: MovimientoCuenta[]
+  ordenes: OrdenPago[]
 }
 
 export type TipoMovimientoCaja = 'INGRESO' | 'EGRESO'

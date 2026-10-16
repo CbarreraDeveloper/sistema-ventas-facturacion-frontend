@@ -12,7 +12,7 @@ import type {
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { Aviso, Barra } from '../components/ui'
 
-type Clave = 'ventas' | 'productos' | 'libro-ventas' | 'libro-compras' | 'stock' | 'cobranzas' | 'caja'
+type Clave = 'ventas' | 'productos' | 'libro-ventas' | 'libro-compras' | 'stock' | 'cobranzas' | 'pagos' | 'caja'
 
 const REPORTES: { clave: Clave; etiqueta: string; periodo: boolean }[] = [
   { clave: 'ventas', etiqueta: 'Ventas', periodo: true },
@@ -20,7 +20,8 @@ const REPORTES: { clave: Clave; etiqueta: string; periodo: boolean }[] = [
   { clave: 'libro-ventas', etiqueta: 'Libro IVA ventas', periodo: true },
   { clave: 'libro-compras', etiqueta: 'Libro IVA compras', periodo: true },
   { clave: 'stock', etiqueta: 'Stock valorizado', periodo: false },
-  { clave: 'cobranzas', etiqueta: 'Antigüedad de saldos', periodo: false },
+  { clave: 'cobranzas', etiqueta: 'Antigüedad clientes', periodo: false },
+  { clave: 'pagos', etiqueta: 'Antigüedad proveedores', periodo: false },
   { clave: 'caja', etiqueta: 'Caja', periodo: true },
 ]
 
@@ -143,6 +144,7 @@ export function ReportesPage() {
       {clave === 'libro-compras' ? <Libro path={`/reportes/libro-compras${periodo}`} contraparte="Proveedor" /> : null}
       {clave === 'stock' ? <Stock /> : null}
       {clave === 'cobranzas' ? <Cobranzas /> : null}
+      {clave === 'pagos' ? <Cobranzas proveedores /> : null}
       {clave === 'caja' ? <Caja path={`/reportes/caja${periodo}`} /> : null}
     </section>
   )
@@ -499,8 +501,8 @@ function Stock() {
   )
 }
 
-function Cobranzas() {
-  const { datos, error } = useReporte<ReporteCobranzas>('/reportes/cobranzas')
+function Cobranzas({ proveedores = false }: { proveedores?: boolean }) {
+  const { datos, error } = useReporte<ReporteCobranzas>(proveedores ? '/reportes/pagos' : '/reportes/cobranzas')
   if (!datos) {
     return <Cargando error={error} />
   }
@@ -528,19 +530,19 @@ function Cobranzas() {
           <strong className={datos.mas90 > 0 ? 'falta' : undefined}>{dinero(datos.mas90)}</strong>
         </div>
         <div className="total">
-          <span>Saldo a cobrar</span>
+          <span>{proveedores ? 'Saldo a pagar' : 'Saldo a cobrar'}</span>
           <strong>{dinero(datos.saldo)}</strong>
         </div>
       </div>
       <p className="ayuda">
-        Saldos de facturas a crédito al {fecha(datos.corte)}, según los días de atraso desde el vencimiento. Las facturas sin plazo se cuentan desde su fecha.
+        Saldos de {proveedores ? 'compras' : 'facturas'} a crédito al {fecha(datos.corte)}, según los días de atraso desde el vencimiento. Las facturas sin plazo se cuentan desde su fecha.
       </p>
       <div className="tabla-contenedor">
         <table className="tabla ancha">
           <thead>
             <tr>
-              <th>Cliente</th>
-              <th>RUC / CI</th>
+              <th>{proveedores ? 'Proveedor' : 'Cliente'}</th>
+              <th>{proveedores ? 'RUC' : 'RUC / CI'}</th>
               <th className="numero">Facturas</th>
               <th className="fecha">Vence la más antigua</th>
               <th className="numero">Por vencer</th>

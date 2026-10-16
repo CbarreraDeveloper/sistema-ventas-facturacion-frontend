@@ -28,6 +28,7 @@ const ENLACES = [
   { href: '#/cuentas', etiqueta: 'Cuentas corrientes' },
   { href: '#/materiales', etiqueta: 'Materiales' },
   { href: '#/compras', etiqueta: 'Compras' },
+  { href: '#/cuentas-pagar', etiqueta: 'Cuentas a pagar' },
   { href: '#/clientes', etiqueta: 'Clientes' },
   { href: '#/proveedores', etiqueta: 'Proveedores' },
 ]

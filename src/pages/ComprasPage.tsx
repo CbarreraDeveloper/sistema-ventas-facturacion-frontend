@@ -62,7 +62,9 @@ export function ComprasPage() {
               <th>Proveedor</th>
               <th>Factura</th>
               <th>Condición</th>
+              <th className="fecha">Vence</th>
               <th className="numero">Total</th>
+              <th className="numero">Saldo</th>
               <th>Estado</th>
               <th />
             </tr>
@@ -74,7 +76,9 @@ export function ComprasPage() {
                 <td>{compra.proveedor}</td>
                 <td>{compra.numeroComprobante}</td>
                 <td>{compra.condicion === 'CREDITO' ? 'Crédito' : 'Contado'}</td>
+                <td className="fecha">{compra.vencimiento ? fecha(compra.vencimiento) : '—'}</td>
                 <td className="numero">{dinero(compra.total)}</td>
+                <td className="numero">{compra.saldo ? dinero(compra.saldo) : '—'}</td>
                 <td>
                   <span className={compra.estado === 'ANULADO' ? 'estado anulado' : 'estado'}>{compra.estado}</span>
                 </td>
@@ -135,6 +139,9 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [siguiente, setSiguiente] = useState(1)
+  const [credito, setCredito] = useState(false)
+  const [proveedorId, setProveedorId] = useState('')
+  const [plazo, setPlazo] = useState('')
 
   useEffect(() => {
     Promise.all([apiListar<Tercero[]>('/terceros?rol=proveedor'), apiListar<Material[]>('/productos')])
@@ -197,6 +204,7 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
         proveedorId: Number(valorInput(form, 'proveedorId')),
         fecha: valorInput(form, 'fecha'),
         condicion: valorInput(form, 'condicion'),
+        plazoDias: credito ? numeroOpcional(plazo) : null,
         numeroComprobante: valorInput(form, 'numeroComprobante'),
         timbradoNumero: textoOpcional(valorInput(form, 'timbradoNumero')),
         observacion: textoOpcional(valorInput(form, 'observacion')),
@@ -218,7 +226,16 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
         <Aviso mensaje={error} />
         <div className="grilla tres">
           <Campo etiqueta="Proveedor">
-            <select name="proveedorId" required defaultValue="">
+            <select
+              name="proveedorId"
+              required
+              value={proveedorId}
+              onChange={(event) => {
+                setProveedorId(event.target.value)
+                const proveedor = proveedores.find((item) => String(item.id) === event.target.value)
+                setPlazo(proveedor?.plazoDias ? String(proveedor.plazoDias) : '')
+              }}
+            >
               <option value="" disabled>
                 Elegí el proveedor
               </option>
@@ -233,11 +250,22 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
             <input name="fecha" type="date" required defaultValue={hoy()} max={hoy()} />
           </Campo>
           <Campo etiqueta="Condición">
-            <select name="condicion" defaultValue="CONTADO">
+            <select name="condicion" defaultValue="CONTADO" onChange={(event) => setCredito(event.target.value === 'CREDITO')}>
               <option value="CONTADO">Contado</option>
               <option value="CREDITO">Crédito</option>
             </select>
           </Campo>
+          {credito ? (
+            <Campo etiqueta="Plazo (días)">
+              <input
+                inputMode="numeric"
+                value={plazo}
+                maxLength={3}
+                placeholder="Sin plazo"
+                onChange={(event) => setPlazo(event.target.value.replace(/\D/g, ''))}
+              />
+            </Campo>
+          ) : null}
           <Campo etiqueta="Factura N°">
             <input name="numeroComprobante" required placeholder="001-001-0000001" maxLength={17} />
           </Campo>
@@ -376,8 +404,22 @@ function DetalleCompra({
           <strong>{fecha(compra.fecha)}</strong>
         </Campo>
         <Campo etiqueta="Condición">
-          <strong>{compra.condicion === 'CREDITO' ? 'Crédito' : 'Contado'}</strong>
+          <strong>
+            {compra.condicion === 'CREDITO'
+              ? `Crédito${compra.plazoDias ? ` ${compra.plazoDias} días` : ''}`
+              : 'Contado'}
+          </strong>
         </Campo>
+        {compra.condicion === 'CREDITO' ? (
+          <>
+            <Campo etiqueta="Vence">
+              <strong>{compra.vencimiento ? fecha(compra.vencimiento) : '—'}</strong>
+            </Campo>
+            <Campo etiqueta="Saldo a pagar">
+              <strong className={compra.saldo > 0 ? 'falta' : undefined}>{dinero(compra.saldo)}</strong>
+            </Campo>
+          </>
+        ) : null}
         <Campo etiqueta="Timbrado">
           <strong>{texto(compra.timbradoNumero)}</strong>
         </Campo>
