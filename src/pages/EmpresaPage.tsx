@@ -63,6 +63,8 @@ export function EmpresaPage() {
           telefono: textoOpcional(valorCrudo(form, 'telefono')),
           email: textoOpcional(valorCrudo(form, 'email')),
           direccion: textoOpcional(valorInput(form, 'direccion')),
+          ciudad: textoOpcional(valorInput(form, 'ciudad')),
+          actividades: textoOpcional(valorInput(form, 'actividades')),
         }),
       )
       setError(null)
@@ -113,6 +115,14 @@ export function EmpresaPage() {
             <Campo etiqueta="Dirección">
               <input name="direccion" maxLength={200} defaultValue={empresa.direccion ?? ''} />
             </Campo>
+            <Campo etiqueta="Ciudad">
+              <input name="ciudad" maxLength={80} defaultValue={empresa.ciudad ?? ''} />
+            </Campo>
+            <div className="span">
+              <Campo etiqueta="Actividades económicas (una por renglón, como en la factura)">
+                <textarea name="actividades" rows={5} maxLength={600} defaultValue={empresa.actividades ?? ''} />
+              </Campo>
+            </div>
             <div className="dialogo-acciones">
               {aviso ? <span className="ayuda">{aviso}</span> : null}
               <button className="btn primary" type="submit" disabled={guardando}>

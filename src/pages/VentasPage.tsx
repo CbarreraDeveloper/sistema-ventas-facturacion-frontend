@@ -351,6 +351,12 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
       }
     }
     const form = event.currentTarget
+    const plazoTexto = (form.elements.namedItem('plazoDias') as HTMLInputElement | null)?.value.trim() ?? ''
+    const plazoDias = condicion === 'CREDITO' && plazoTexto ? Number(plazoTexto) : null
+    if (plazoDias !== null && (!Number.isInteger(plazoDias) || plazoDias < 1 || plazoDias > 365)) {
+      setError('El plazo del crédito debe ser un número de días entre 1 y 365')
+      return
+    }
     const punto = opciones?.puntos.find((item) => String(item.puntoExpedicionId) === puntoId)
     const total = sumarTotales(lineas.map((linea) => ({ total: totalLinea(linea), porcentaje: linea.material.porcentajeIva }))).total
     if (
@@ -370,6 +376,8 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
         condicion,
         listaPrecio: lista,
         observacion: textoOpcional((form.elements.namedItem('observacion') as HTMLTextAreaElement).value.trim()),
+        plazoDias,
+        notaRemision: textoOpcional((form.elements.namedItem('notaRemision') as HTMLInputElement).value.trim()),
         items,
         pagos,
       })
@@ -456,6 +464,19 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
                 </option>
               ))}
             </select>
+          </Campo>
+          {condicion === 'CREDITO' ? (
+            <Campo etiqueta="Plazo del crédito (días)">
+              <input
+                name="plazoDias"
+                inputMode="numeric"
+                maxLength={3}
+                placeholder={cliente?.plazoDias ? `${cliente.plazoDias} (del cliente)` : 'Ej.: 30'}
+              />
+            </Campo>
+          ) : null}
+          <Campo etiqueta="Nota de remisión N°">
+            <input name="notaRemision" maxLength={30} />
           </Campo>
         </div>
         {puntoElegido ? (
@@ -710,7 +731,12 @@ function DetalleVenta({
           <strong>{fecha(venta.fecha)}</strong>
         </Campo>
         <Campo etiqueta="Condición">
-          <strong>{venta.condicion === 'CREDITO' ? 'Crédito' : 'Contado'}</strong>
+          <strong>
+            {venta.condicion === 'CREDITO' ? `Crédito${venta.plazoDias ? ` a ${venta.plazoDias} días` : ''}` : 'Contado'}
+          </strong>
+        </Campo>
+        <Campo etiqueta="Nota de remisión">
+          <strong>{texto(venta.notaRemision)}</strong>
         </Campo>
         <Campo etiqueta="Obra">
           <strong>{texto(venta.obra)}</strong>

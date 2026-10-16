@@ -120,6 +120,9 @@ export type Venta = {
   cliente: string
   clienteDocumento: string | null
   clienteDireccion: string | null
+  clienteTelefono: string | null
+  plazoDias: number | null
+  notaRemision: string | null
   obraId: number | null
   obra: string | null
   condicion: 'CONTADO' | 'CREDITO'
@@ -212,6 +215,8 @@ export type Empresa = {
   telefono: string | null
   email: string | null
   direccion: string | null
+  ciudad: string | null
+  actividades: string | null
 }
 
 export type Sucursal = {
