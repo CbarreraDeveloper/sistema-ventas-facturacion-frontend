@@ -228,6 +228,12 @@ a {
   background: transparent;
 }
 
+.btn.peligro {
+  background: #a33a2c;
+  border-color: #a33a2c;
+  color: #fff;
+}
+
 .btn.claro {
   border-color: rgb(255 255 255 / 30%);
   color: #f7f4ee;
@@ -492,6 +498,16 @@ a {
   place-items: center;
   padding: 24px;
   background: rgb(28 36 48 / 45%);
+}
+
+.velo.confirmacion {
+  z-index: 60;
+}
+
+.confirmacion-mensaje {
+  margin: 0 0 20px;
+  line-height: 1.5;
+  white-space: pre-line;
 }
 
 .dialogo.angosto {

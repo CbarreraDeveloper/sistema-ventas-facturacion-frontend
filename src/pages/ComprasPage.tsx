@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiCrear, apiListar, cantidad, dinero, fecha, hoy, texto } from '../api/client'
+import { confirmar } from '../components/Confirmacion'
 import type { Compra, Material, Tercero } from '../api/types'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { CuadroTotales, sumarTotales, totalesDe } from '../components/Totales'
@@ -377,7 +378,14 @@ function DetalleCompra({
   const [anulando, setAnulando] = useState(false)
 
   async function anular() {
-    if (!window.confirm(`¿Anular la factura ${compra.numeroComprobante}? Se descontará el stock que sumó.`)) {
+    if (
+      !(await confirmar({
+        titulo: 'Anular compra',
+        mensaje: `¿Anular la factura ${compra.numeroComprobante}? Se descontará el stock que sumó.`,
+        aceptar: 'Anular compra',
+        peligro: true,
+      }))
+    ) {
       return
     }
     setAnulando(true)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { apiEnviar, AUTH_EVENT, cargarSesion, guardarSesion } from './api/client'
 import type { Sesion, Usuario } from './api/types'
+import { Confirmaciones } from './components/Confirmacion'
 import { AppShell } from './layout/AppShell'
 import { CambiarClavePage, LoginPage } from './pages/AccesoPage'
 import { CajaPage } from './pages/CajaPage'
@@ -125,8 +126,11 @@ export default function App() {
   }
 
   return (
-    <AppShell ruta={ruta}>
-      <Pantalla ruta={ruta} />
-    </AppShell>
+    <>
+      <AppShell ruta={ruta}>
+        <Pantalla ruta={ruta} />
+      </AppShell>
+      <Confirmaciones />
+    </>
   )
 }

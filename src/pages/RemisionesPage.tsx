@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiAbrir, apiCrear, apiListar, cantidad, cargarSesion, fecha, hoy, texto } from '../api/client'
+import { confirmar } from '../components/Confirmacion'
 import type { EntregaPendiente, Material, MotivoTraslado, Obra, Remision, RemisionOpciones, Tercero, Venta } from '../api/types'
 import { etiquetaCliente, etiquetaMaterial } from '../components/etiquetas'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
@@ -321,7 +322,13 @@ export function NuevaRemision({
     const form = event.currentTarget
     const valor = (nombre: string) => (form.elements.namedItem(nombre) as HTMLInputElement).value.trim()
     const punto = opciones?.puntos.find((item) => String(item.puntoExpedicionId) === puntoId)
-    if (!window.confirm(`¿Emitir la nota de remisión ${punto?.proximoComprobante ?? ''}?`)) {
+    if (
+      !(await confirmar({
+        titulo: 'Emitir nota de remisión',
+        mensaje: `¿Emitir la nota de remisión ${punto?.proximoComprobante ?? ''}?`,
+        aceptar: 'Emitir remisión',
+      }))
+    ) {
       return
     }
     setGuardando(true)
@@ -591,9 +598,12 @@ export function DetalleRemision({
 
   async function anular() {
     if (
-      !window.confirm(
-        `¿Anular la nota de remisión ${remision.numeroComprobante}? El número queda usado. Recordá anular también el talonario físico.`,
-      )
+      !(await confirmar({
+        titulo: 'Anular nota de remisión',
+        mensaje: `¿Anular la nota de remisión ${remision.numeroComprobante}? El número queda usado. Recordá anular también el talonario físico.`,
+        aceptar: 'Anular remisión',
+        peligro: true,
+      }))
     ) {
       return
     }

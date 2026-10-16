@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiAbrir, apiCrear, apiListar, cantidad, cargarSesion, dinero, fecha, hoy, texto } from '../api/client'
+import { confirmar } from '../components/Confirmacion'
 import type {
   EntregaPendiente,
   EstadoCuenta,
@@ -256,9 +257,11 @@ export function NuevaVenta({
     }
     const punto = opciones?.puntos.find((item) => String(item.puntoExpedicionId) === puntoId)
     if (
-      !window.confirm(
-        `¿Emitir la factura ${punto?.proximoComprobante ?? ''} por Gs. ${dinero(totales.total)} a ${cliente?.razonSocial ?? SIN_NOMBRE}?`,
-      )
+      !(await confirmar({
+        titulo: 'Emitir factura',
+        mensaje: `¿Emitir la factura ${punto?.proximoComprobante ?? ''} por Gs. ${dinero(totales.total)} a ${cliente?.razonSocial ?? SIN_NOMBRE}?`,
+        aceptar: 'Emitir factura',
+      }))
     ) {
       return
     }
@@ -490,9 +493,12 @@ export function DetalleVenta({
 
   async function anular() {
     if (
-      !window.confirm(
-        `¿Anular la factura ${venta.numeroComprobante}? El stock vuelve al depósito, lo cobrado sale de la caja como egreso y el número queda usado. Recordá anular también el talonario físico.`,
-      )
+      !(await confirmar({
+        titulo: 'Anular factura',
+        mensaje: `¿Anular la factura ${venta.numeroComprobante}? El stock vuelve al depósito, lo cobrado sale de la caja como egreso y el número queda usado. Recordá anular también el talonario físico.`,
+        aceptar: 'Anular factura',
+        peligro: true,
+      }))
     ) {
       return
     }
