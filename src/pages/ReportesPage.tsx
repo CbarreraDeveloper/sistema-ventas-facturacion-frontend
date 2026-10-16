@@ -282,7 +282,8 @@ function Productos({ path }: { path: string }) {
         </div>
       </div>
       <p className="ayuda">
-        Descuenta devoluciones y descuentos de notas de crédito. El costo es el costo actual de cada producto, no el que tenía el día de la venta.
+        Descuenta devoluciones y descuentos de notas de crédito. El costo es el que tenía cada producto el día de la venta, así que cambiar
+        costos después no altera la rentabilidad de meses pasados.
       </p>
       <label className="campo busqueda">
         <span>Buscar</span>
