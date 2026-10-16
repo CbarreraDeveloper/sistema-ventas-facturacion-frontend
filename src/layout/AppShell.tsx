@@ -23,6 +23,7 @@ const ENLACES = [
   { href: '#/presupuestos', etiqueta: 'Presupuestos' },
   { href: '#/ventas', etiqueta: 'Ventas' },
   { href: '#/remisiones', etiqueta: 'Remisiones' },
+  { href: '#/notas-credito', etiqueta: 'Notas de crédito' },
   { href: '#/caja', etiqueta: 'Caja' },
   { href: '#/cuentas', etiqueta: 'Cuentas corrientes' },
   { href: '#/materiales', etiqueta: 'Materiales' },

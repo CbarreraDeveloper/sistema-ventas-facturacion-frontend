@@ -1,13 +1,25 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiAbrir, apiCrear, apiListar, cantidad, cargarSesion, dinero, fecha, hoy, texto } from '../api/client'
-import type { EntregaPendiente, EstadoCuenta, Material, Obra, Presupuesto, Remision, Tercero, Venta, VentaOpciones } from '../api/types'
+import type {
+  EntregaPendiente,
+  EstadoCuenta,
+  Material,
+  NotaCredito,
+  Obra,
+  Presupuesto,
+  Remision,
+  Tercero,
+  Venta,
+  VentaOpciones,
+} from '../api/types'
 import { SeccionCobro, useCobro } from '../components/Cobro'
 import { etiquetaCliente, SIN_NOMBRE } from '../components/etiquetas'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { EditorRenglones, useRenglones } from '../components/Renglones'
 import { CuadroTotales, totalesDe } from '../components/Totales'
 import { Aviso, Barra, Campo, Dialogo, textoOpcional } from '../components/ui'
+import { DetalleNotaCredito, NuevaNotaCredito } from './NotasCreditoPage'
 import { DetalleRemision, NuevaRemision } from './RemisionesPage'
 
 export function VentasPage() {
@@ -422,21 +434,37 @@ export function DetalleVenta({
   const [pendientes, setPendientes] = useState<EntregaPendiente[]>([])
   const [remitiendo, setRemitiendo] = useState(false)
   const [remision, setRemision] = useState<Remision | null>(null)
+  const [notas, setNotas] = useState<NotaCredito[]>([])
+  const [acreditando, setAcreditando] = useState(false)
+  const [nota, setNota] = useState<NotaCredito | null>(null)
   const esAdmin = cargarSesion()?.roles.includes('ADMIN') ?? false
 
   async function cargarEntregas() {
     try {
-      const [lista, faltan] = await Promise.all([
+      const [lista, faltan, creditos] = await Promise.all([
         apiListar<Remision[]>(`/remisiones/factura/${venta.id}`),
         apiListar<EntregaPendiente[]>(`/remisiones/factura/${venta.id}/pendiente`),
+        apiListar<NotaCredito[]>(`/notas-credito/factura/${venta.id}`),
       ])
       setRemisiones(lista)
       setPendientes(faltan)
+      setNotas(creditos)
     } catch {
       setRemisiones([])
       setPendientes([])
+      setNotas([])
     }
   }
+
+  async function verNota(id: number) {
+    try {
+      setNota(await apiListar<NotaCredito>(`/notas-credito/${id}`))
+    } catch (causa) {
+      setError(causa instanceof Error ? causa.message : 'No se pudo abrir la nota de crédito')
+    }
+  }
+
+  const acreditado = notas.filter((item) => item.estado === 'CONFIRMADO').reduce((suma, item) => suma + item.total, 0)
 
   useEffect(() => {
     void cargarEntregas()
@@ -599,6 +627,43 @@ export function DetalleVenta({
             </p>
           </>
         ) : null}
+        {notas.length > 0 ? (
+          <>
+            <h3 className="bloque">Notas de crédito</h3>
+            <div className="tabla-contenedor">
+              <table className="tabla">
+                <thead>
+                  <tr>
+                    <th className="fecha">Fecha</th>
+                    <th>Número</th>
+                    <th className="numero">Total</th>
+                    <th className="numero">Devuelto en caja</th>
+                    <th>Estado</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {notas.map((item) => (
+                    <tr key={item.id} className={item.estado === 'ANULADO' ? 'baja' : undefined}>
+                      <td className="fecha">{fecha(item.fecha)}</td>
+                      <td>{item.numeroComprobante}</td>
+                      <td className="numero">{dinero(item.total)}</td>
+                      <td className="numero">{item.reintegro ? dinero(item.reintegro) : '—'}</td>
+                      <td>
+                        <span className={item.estado === 'ANULADO' ? 'estado anulado' : 'estado'}>{item.estado}</span>
+                      </td>
+                      <td className="acciones">
+                        <button type="button" className="btn ghost" onClick={() => void verNota(item.id)}>
+                          Ver
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : null}
         <div className="dialogo-acciones">
           {esAdmin && venta.estado === 'CONFIRMADO' ? (
             <button type="button" className="btn" disabled={anulando} onClick={() => void anular()}>
@@ -608,6 +673,11 @@ export function DetalleVenta({
           {venta.estado === 'CONFIRMADO' && porEntregar.length > 0 ? (
             <button type="button" className="btn" onClick={() => setRemitiendo(true)}>
               Nota de remisión
+            </button>
+          ) : null}
+          {venta.estado === 'CONFIRMADO' && acreditado < venta.total ? (
+            <button type="button" className="btn" onClick={() => setAcreditando(true)}>
+              Nota de crédito
             </button>
           ) : null}
           <button type="button" className="btn" onClick={() => void imprimir()}>
@@ -635,6 +705,27 @@ export function DetalleVenta({
           onCerrar={() => setRemision(null)}
           onAnulada={(anulada) => {
             setRemision(anulada)
+            void cargarEntregas()
+          }}
+        />
+      ) : null}
+      {acreditando ? (
+        <NuevaNotaCredito
+          facturaId={venta.id}
+          onCerrar={() => setAcreditando(false)}
+          onGuardada={(nueva) => {
+            setAcreditando(false)
+            setNota(nueva)
+            void cargarEntregas()
+          }}
+        />
+      ) : null}
+      {nota ? (
+        <DetalleNotaCredito
+          nota={nota}
+          onCerrar={() => setNota(null)}
+          onAnulada={(anulada) => {
+            setNota(anulada)
             void cargarEntregas()
           }}
         />

@@ -299,6 +299,7 @@ function DetalleCuenta({
               <th>Obra</th>
               <th className="numero">Total</th>
               <th className="numero">Cobrado</th>
+              <th className="numero">Notas de crédito</th>
               <th className="numero">Saldo</th>
               <th className="numero">Atraso</th>
             </tr>
@@ -312,6 +313,7 @@ function DetalleCuenta({
                 <td>{texto(factura.obra)}</td>
                 <td className="numero">{dinero(factura.total)}</td>
                 <td className="numero">{factura.cobrado ? dinero(factura.cobrado) : '—'}</td>
+                <td className="numero">{factura.acreditado ? dinero(factura.acreditado) : '—'}</td>
                 <td className="numero">{dinero(factura.saldo)}</td>
                 <td className={claseAtraso(factura.diasAtraso)}>{factura.diasAtraso ? `${factura.diasAtraso} días` : '—'}</td>
               </tr>
@@ -343,6 +345,8 @@ function DetalleCuenta({
                     <button type="button" className="btn ghost" onClick={() => onRecibo(movimiento.id)}>
                       Recibo {movimiento.numero}
                     </button>
+                  ) : movimiento.tipo === 'NOTA_CREDITO' ? (
+                    `Nota de crédito ${movimiento.numero}`
                   ) : (
                     `Factura ${movimiento.numero}`
                   )}

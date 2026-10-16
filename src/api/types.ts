@@ -205,13 +205,14 @@ export type FacturaPendiente = {
   obra: string | null
   total: number
   cobrado: number
+  acreditado: number
   saldo: number
   diasAtraso: number
 }
 
 export type MovimientoCuenta = {
   fecha: string
-  tipo: 'FACTURA' | 'RECIBO'
+  tipo: 'FACTURA' | 'RECIBO' | 'NOTA_CREDITO'
   id: number
   numero: string
   detalle: string
@@ -415,6 +416,68 @@ export type RemisionOpciones = {
   empresaConfigurada: boolean
   puntoPartida: string | null
   puntos: PuntoVenta[]
+}
+
+export type MotivoCredito = 'DEVOLUCION' | 'DESCUENTO' | 'BONIFICACION' | 'AJUSTE_PRECIO'
+
+export type NotaCredito = {
+  id: number
+  numeroComprobante: string
+  fecha: string
+  estado: 'BORRADOR' | 'CONFIRMADO' | 'ANULADO'
+  timbradoNumero: string
+  clienteId: number | null
+  cliente: string
+  clienteDocumento: string | null
+  facturaId: number
+  facturaNumero: string
+  facturaFecha: string
+  condicion: 'CONTADO' | 'CREDITO'
+  motivo: MotivoCredito
+  totalExento: number
+  totalGravado5: number
+  totalGravado10: number
+  totalIva5: number
+  totalIva10: number
+  total: number
+  aplicado: number
+  reintegro: number
+  observacion: string | null
+  usuario: string | null
+  lineas: VentaLinea[]
+}
+
+export type CreditoLinea = {
+  detalleId: number
+  codigo: string | null
+  descripcion: string
+  unidad: string | null
+  porcentajeIva: number
+  cantidad: number
+  total: number
+  devuelto: number
+  acreditado: number
+  cantidadDisponible: number
+  montoDisponible: number
+}
+
+export type CreditoDisponible = {
+  facturaId: number
+  facturaNumero: string
+  fecha: string
+  cliente: string
+  condicion: 'CONTADO' | 'CREDITO'
+  total: number
+  acreditado: number
+  saldoCuenta: number
+  lineas: CreditoLinea[]
+}
+
+export type NotaCreditoOpciones = {
+  empresaConfigurada: boolean
+  cajaAbierta: boolean
+  puntos: PuntoVenta[]
+  medios: OpcionCatalogo[]
 }
 
 export type EntregaPendiente = {
