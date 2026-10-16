@@ -9,6 +9,7 @@ import { CuentasPage } from './pages/CuentasPage'
 import { EmpresaPage } from './pages/EmpresaPage'
 import { InicioPage } from './pages/InicioPage'
 import { MaterialesPage } from './pages/MaterialesPage'
+import { PresupuestosPage } from './pages/PresupuestosPage'
 import { ClientesPage, ProveedoresPage } from './pages/TercerosPage'
 import { UsuariosPage } from './pages/UsuariosPage'
 import { VentasPage } from './pages/VentasPage'
@@ -36,6 +37,9 @@ function Pantalla({ ruta }: { ruta: string }) {
   }
   if (ruta === '/caja') {
     return <CajaPage />
+  }
+  if (ruta === '/presupuestos') {
+    return <PresupuestosPage />
   }
   if (ruta === '/cuentas') {
     return <CuentasPage />

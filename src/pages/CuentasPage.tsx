@@ -3,16 +3,9 @@ import type { FormEvent } from 'react'
 import { apiAbrir, apiCrear, apiListar, cargarSesion, dinero, fecha, texto } from '../api/client'
 import type { CajaSesion, EstadoCuenta, OpcionCatalogo, Recibo, SaldoCliente, Tercero } from '../api/types'
 import { SeccionCobro, useCobro } from '../components/Cobro'
+import { etiquetaCliente } from '../components/etiquetas'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { Aviso, Barra, Campo, Dialogo, mascaraMonto, numeroOpcional, textoOpcional } from '../components/ui'
-
-function etiquetaCliente(cliente: Tercero): string {
-  if (!cliente.documento) {
-    return cliente.razonSocial
-  }
-  const documento = cliente.digitoVerificador ? `${cliente.documento}-${cliente.digitoVerificador}` : cliente.documento
-  return `${cliente.razonSocial} · ${documento}`
-}
 
 function claseAtraso(dias: number): string {
   return dias > 0 ? 'numero falta' : 'numero'

@@ -123,6 +123,8 @@ export type Venta = {
   clienteTelefono: string | null
   plazoDias: number | null
   notaRemision: string | null
+  presupuestoId: number | null
+  presupuestoNumero: string | null
   obraId: number | null
   obra: string | null
   condicion: 'CONTADO' | 'CREDITO'
@@ -148,6 +150,40 @@ export type PagoLinea = {
   medio: string
   monto: number
   referencia: string | null
+}
+
+export type EstadoPresupuesto = 'PENDIENTE' | 'VENCIDO' | 'FACTURADO' | 'ANULADO'
+
+export type Presupuesto = {
+  id: number
+  numero: string
+  fecha: string
+  validezDias: number
+  validoHasta: string
+  estado: EstadoPresupuesto
+  clienteId: number | null
+  cliente: string
+  clienteNombre: string | null
+  clienteDocumento: string | null
+  clienteTelefono: string | null
+  clienteDireccion: string | null
+  obraId: number | null
+  obra: string | null
+  condicion: 'CONTADO' | 'CREDITO'
+  plazoDias: number | null
+  listaPrecio: string | null
+  listaPrecioNombre: string | null
+  observacion: string | null
+  totalExento: number
+  totalGravado5: number
+  totalGravado10: number
+  totalIva5: number
+  totalIva10: number
+  total: number
+  usuario: string | null
+  facturaId: number | null
+  facturaNumero: string | null
+  lineas: VentaLinea[]
 }
 
 export type SaldoCliente = {

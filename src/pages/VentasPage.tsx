@@ -1,21 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiAbrir, apiCrear, apiListar, cantidad, cargarSesion, dinero, fecha, hoy, texto } from '../api/client'
-import type { EstadoCuenta, Material, Obra, Tercero, Venta, VentaOpciones } from '../api/types'
+import type { EstadoCuenta, Material, Obra, Presupuesto, Tercero, Venta, VentaOpciones } from '../api/types'
 import { SeccionCobro, useCobro } from '../components/Cobro'
+import { etiquetaCliente, SIN_NOMBRE } from '../components/etiquetas'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
-import { CuadroTotales, sumarTotales, totalesDe } from '../components/Totales'
-import { Aviso, Barra, Campo, Dialogo, mascaraMonto, numeroOpcional, textoOpcional } from '../components/ui'
-
-type Linea = {
-  clave: number
-  material: Material
-  cantidad: string
-  precio: string
-  descuento: string
-}
-
-const SIN_NOMBRE = 'SIN NOMBRE'
+import { EditorRenglones, useRenglones } from '../components/Renglones'
+import { CuadroTotales, totalesDe } from '../components/Totales'
+import { Aviso, Barra, Campo, Dialogo, textoOpcional } from '../components/ui'
 
 export function VentasPage() {
   const [ventas, setVentas] = useState<Venta[]>([])
@@ -128,57 +120,29 @@ export function VentasPage() {
   )
 }
 
-function etiquetaMaterial(material: Material): string {
-  return `${material.codigo} · ${material.descripcion}`
-}
-
-function etiquetaCliente(cliente: Tercero): string {
-  if (!cliente.documento) {
-    return cliente.razonSocial
-  }
-  const documento = cliente.digitoVerificador ? `${cliente.documento}-${cliente.digitoVerificador}` : cliente.documento
-  return `${cliente.razonSocial} · ${documento}`
-}
-
-function precioDeLista(material: Material, lista: string): number {
-  const minorista = material.precioMinorista ?? 0
-  if (lista === 'MAYORISTA') {
-    return material.precioMayorista ?? minorista
-  }
-  if (lista === 'ESPECIAL') {
-    return material.precioEspecial ?? minorista
-  }
-  return minorista
-}
-
-function totalLinea(linea: Linea): number {
-  const unidades = numeroOpcional(linea.cantidad) ?? 0
-  const precio = numeroOpcional(linea.precio) ?? 0
-  const descuento = numeroOpcional(linea.descuento) ?? 0
-  return Math.round(unidades * precio) - Math.round(descuento)
-}
-
-function faltaStock(linea: Linea): boolean {
-  return linea.material.controlaStock && (numeroOpcional(linea.cantidad) ?? 0) > linea.material.existencia
-}
-
-function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada: (venta: Venta) => void }) {
+export function NuevaVenta({
+  presupuesto,
+  onCerrar,
+  onGuardada,
+}: {
+  presupuesto?: Presupuesto
+  onCerrar: () => void
+  onGuardada: (venta: Venta) => void
+}) {
   const [opciones, setOpciones] = useState<VentaOpciones | null>(null)
   const [clientes, setClientes] = useState<Tercero[]>([])
   const [materiales, setMateriales] = useState<Material[]>([])
   const [obras, setObras] = useState<Obra[]>([])
   const [puntoId, setPuntoId] = useState('')
-  const [condicion, setCondicion] = useState<'CONTADO' | 'CREDITO'>('CONTADO')
-  const [lista, setLista] = useState('MINORISTA')
+  const [condicion, setCondicion] = useState<'CONTADO' | 'CREDITO'>(presupuesto?.condicion ?? 'CONTADO')
+  const [lista, setLista] = useState(presupuesto?.listaPrecio ?? 'MINORISTA')
   const [clienteTexto, setClienteTexto] = useState('')
   const [obraId, setObraId] = useState('')
-  const [lineas, setLineas] = useState<Linea[]>([])
-  const [buscar, setBuscar] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
-  const [siguiente, setSiguiente] = useState(1)
   const [cuenta, setCuenta] = useState<EstadoCuenta | null>(null)
-  const totales = sumarTotales(lineas.map((linea) => ({ total: totalLinea(linea), porcentaje: linea.material.porcentajeIva })))
+  const renglones = useRenglones()
+  const totales = renglones.totales
   const cobro = useCobro(totales.total, opciones?.medios ?? [])
 
   useEffect(() => {
@@ -191,7 +155,18 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
         setOpciones(datos)
         setPuntoId(datos.puntos[0] ? String(datos.puntos[0].puntoExpedicionId) : '')
         setClientes(listaClientes)
-        setMateriales(listaMateriales.filter((material) => material.activo))
+        const activos = listaMateriales.filter((material) => material.activo)
+        setMateriales(activos)
+        if (presupuesto) {
+          const faltantes = renglones.cargar(presupuesto.lineas, activos)
+          if (faltantes > 0) {
+            setError(`${faltantes} material(es) del presupuesto están de baja y no se cargaron`)
+          }
+          const elegido = listaClientes.find((item) => item.id === presupuesto.clienteId)
+          if (elegido) {
+            setClienteTexto(etiquetaCliente(elegido))
+          }
+        }
       })
       .catch((causa: unknown) => setError(causa instanceof Error ? causa.message : 'No se pudieron leer los datos'))
   }, [])
@@ -213,6 +188,9 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
       .then((lista) => {
         if (vigente) {
           setObras(lista)
+          if (presupuesto?.obraId && presupuesto.clienteId === clienteId && lista.some((obra) => obra.id === presupuesto.obraId)) {
+            setObraId(String(presupuesto.obraId))
+          }
         }
       })
       .catch(() => undefined)
@@ -228,55 +206,9 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
     }
   }, [clienteId])
 
-  function elegir(valor: string) {
-    setBuscar(valor)
-    const material = materiales.find((item) => etiquetaMaterial(item) === valor)
-    if (!material) {
-      return
-    }
-    setLineas((actuales) => {
-      const existente = actuales.find((linea) => linea.material.id === material.id)
-      if (existente) {
-        const sumada = (numeroOpcional(existente.cantidad) ?? 0) + 1
-        return actuales.map((linea) =>
-          linea.clave === existente.clave ? { ...linea, cantidad: mascaraMonto(String(sumada).replace('.', ','), 3) } : linea,
-        )
-      }
-      return [
-        ...actuales,
-        {
-          clave: siguiente,
-          material,
-          cantidad: '1',
-          precio: mascaraMonto(String(Math.round(precioDeLista(material, lista)))),
-          descuento: '',
-        },
-      ]
-    })
-    setSiguiente((valorActual) => valorActual + 1)
-    setBuscar('')
-  }
-
   function cambiarLista(codigo: string) {
     setLista(codigo)
-    setLineas((actuales) =>
-      actuales.map((linea) => ({
-        ...linea,
-        precio: mascaraMonto(String(Math.round(precioDeLista(linea.material, codigo)))),
-      })),
-    )
-  }
-
-  function cambiar(clave: number, campo: 'cantidad' | 'precio' | 'descuento', valor: string) {
-    setLineas((actuales) =>
-      actuales.map((linea) =>
-        linea.clave === clave ? { ...linea, [campo]: mascaraMonto(valor, campo === 'cantidad' ? 3 : 0) } : linea,
-      ),
-    )
-  }
-
-  function quitar(clave: number) {
-    setLineas((actuales) => actuales.filter((linea) => linea.clave !== clave))
+    renglones.repreciar(codigo)
   }
 
   async function guardar(event: FormEvent<HTMLFormElement>) {
@@ -289,26 +221,9 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
       setError('Una venta a crédito necesita un cliente')
       return
     }
-    if (lineas.length === 0) {
-      setError('Cargá al menos un material')
-      return
-    }
-    const items = lineas.map((linea) => ({
-      productoId: linea.material.id,
-      cantidad: numeroOpcional(linea.cantidad),
-      precioUnitario: numeroOpcional(linea.precio),
-      descuento: numeroOpcional(linea.descuento),
-    }))
-    if (items.some((item) => !item.cantidad || item.cantidad <= 0)) {
-      setError('Todas las cantidades deben ser mayores a cero')
-      return
-    }
-    if (items.some((item) => !item.precioUnitario || item.precioUnitario <= 0)) {
-      setError('Hay materiales sin precio. Cargalo en la línea o en Materiales')
-      return
-    }
-    if (lineas.some((linea) => totalLinea(linea) < 0)) {
-      setError('Hay un descuento mayor que el importe de su línea')
+    const problemaRenglones = renglones.validar()
+    if (problemaRenglones) {
+      setError(problemaRenglones)
       return
     }
     if (condicion === 'CONTADO') {
@@ -339,6 +254,7 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
       const venta = await apiCrear<Venta>('/ventas', {
         clienteId,
         obraId: obraId ? Number(obraId) : null,
+        presupuestoId: presupuesto?.id ?? null,
         puntoExpedicionId: Number(puntoId),
         fecha: (form.elements.namedItem('fecha') as HTMLInputElement).value,
         condicion,
@@ -346,7 +262,7 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
         observacion: textoOpcional((form.elements.namedItem('observacion') as HTMLTextAreaElement).value.trim()),
         plazoDias,
         notaRemision: textoOpcional((form.elements.namedItem('notaRemision') as HTMLInputElement).value.trim()),
-        items,
+        items: renglones.items(),
         pagos,
       })
       onGuardada(venta)
@@ -370,7 +286,11 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
           : null
 
   return (
-    <Dialogo clase="ancho" titulo="Nueva factura" onCerrar={onCerrar}>
+    <Dialogo
+      clase="ancho"
+      titulo={presupuesto ? `Facturar presupuesto ${presupuesto.numero}` : 'Nueva factura'}
+      onCerrar={onCerrar}
+    >
       <form onSubmit={(event) => void guardar(event)}>
         <Aviso mensaje={error ?? bloqueo} />
         <div className="grilla tres">
@@ -434,6 +354,7 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
                 name="plazoDias"
                 inputMode="numeric"
                 maxLength={3}
+                defaultValue={presupuesto?.plazoDias ?? undefined}
                 placeholder={cliente?.plazoDias ? `${cliente.plazoDias} (del cliente)` : 'Ej.: 30'}
               />
             </Campo>
@@ -455,89 +376,12 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
             Timbrado {puntoElegido.timbrado}, vigente hasta {fecha(puntoElegido.vigenteHasta)}. Quedan {puntoElegido.disponibles} números.
           </p>
         ) : null}
-        <div className="grilla bloque">
-          <div className="span">
-            <Campo etiqueta="Agregar material">
-              <input
-                list="materiales-venta"
-                value={buscar}
-                onChange={(event) => elegir(event.target.value)}
-                placeholder="Escribí código o descripción y elegí de la lista"
-              />
-            </Campo>
-            <datalist id="materiales-venta">
-              {materiales.map((material) => (
-                <option key={material.id} value={etiquetaMaterial(material)} />
-              ))}
-            </datalist>
-          </div>
-        </div>
-        <div className="tabla-contenedor bloque">
-          <table className="tabla lineas">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Descripción</th>
-                <th className="numero">Stock</th>
-                <th className="numero">Cantidad</th>
-                <th className="numero">Precio unitario</th>
-                <th className="numero">Descuento</th>
-                <th className="numero">IVA</th>
-                <th className="numero">Total</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {lineas.map((linea) => (
-                <tr key={linea.clave}>
-                  <td>{linea.material.codigo}</td>
-                  <td>{linea.material.descripcion}</td>
-                  <td className={faltaStock(linea) ? 'numero falta' : 'numero'}>
-                    {linea.material.controlaStock ? cantidad(linea.material.existencia) : '—'}
-                  </td>
-                  <td>
-                    <input
-                      className="monto"
-                      inputMode="decimal"
-                      aria-label={`Cantidad de ${linea.material.codigo}`}
-                      value={linea.cantidad}
-                      onChange={(event) => cambiar(linea.clave, 'cantidad', event.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="monto"
-                      inputMode="numeric"
-                      aria-label={`Precio de ${linea.material.codigo}`}
-                      value={linea.precio}
-                      onChange={(event) => cambiar(linea.clave, 'precio', event.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="monto"
-                      inputMode="numeric"
-                      aria-label={`Descuento de ${linea.material.codigo}`}
-                      value={linea.descuento}
-                      onChange={(event) => cambiar(linea.clave, 'descuento', event.target.value)}
-                    />
-                  </td>
-                  <td className="numero">{dinero(linea.material.porcentajeIva)}%</td>
-                  <td className="numero">{dinero(totalLinea(linea))}</td>
-                  <td className="acciones">
-                    <button type="button" className="btn ghost" onClick={() => quitar(linea.clave)}>
-                      Quitar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {lineas.length === 0 ? <p className="vacio">Agregá los materiales a facturar.</p> : null}
-        {lineas.some(faltaStock) ? (
-          <p className="ayuda">Hay líneas que superan el stock registrado. Se puede facturar igual y el stock queda en negativo.</p>
-        ) : null}
+        <EditorRenglones
+          estado={renglones}
+          materiales={materiales}
+          lista={lista}
+          avisarStock="Hay líneas que superan el stock registrado. Se puede facturar igual y el stock queda en negativo."
+        />
         <CuadroTotales totales={totales} />
         {condicion === 'CONTADO' && opciones?.cajaAbierta ? (
           <SeccionCobro cobro={cobro} detalle="El efectivo es lo que falta para completar el total después de los otros medios." />
@@ -562,7 +406,7 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
   )
 }
 
-function DetalleVenta({
+export function DetalleVenta({
   venta,
   onCerrar,
   onAnulada,
@@ -624,6 +468,9 @@ function DetalleVenta({
         </Campo>
         <Campo etiqueta="Obra">
           <strong>{texto(venta.obra)}</strong>
+        </Campo>
+        <Campo etiqueta="Presupuesto">
+          <strong>{texto(venta.presupuestoNumero)}</strong>
         </Campo>
         <Campo etiqueta="Timbrado">
           <strong>{venta.timbradoNumero}</strong>
