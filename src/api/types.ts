@@ -150,6 +150,70 @@ export type PagoLinea = {
   referencia: string | null
 }
 
+export type SaldoCliente = {
+  clienteId: number
+  cliente: string
+  documento: string | null
+  limiteCredito: number | null
+  saldo: number
+  vencido: number
+  facturas: number
+  diasAtraso: number
+}
+
+export type FacturaPendiente = {
+  id: number
+  numeroComprobante: string
+  fecha: string
+  vencimiento: string | null
+  obra: string | null
+  total: number
+  cobrado: number
+  saldo: number
+  diasAtraso: number
+}
+
+export type MovimientoCuenta = {
+  fecha: string
+  tipo: 'FACTURA' | 'RECIBO'
+  id: number
+  numero: string
+  detalle: string
+  debe: number
+  haber: number
+  saldo: number
+}
+
+export type Recibo = {
+  id: number
+  numero: string
+  fecha: string
+  clienteId: number
+  cliente: string
+  clienteDocumento: string | null
+  total: number
+  estado: 'CONFIRMADO' | 'ANULADO'
+  observacion: string | null
+  usuario: string | null
+  aplicaciones: { comprobanteId: number; numeroComprobante: string; monto: number }[]
+  pagos: PagoLinea[]
+}
+
+export type EstadoCuenta = {
+  clienteId: number
+  cliente: string
+  documento: string | null
+  telefono: string | null
+  limiteCredito: number | null
+  plazoDias: number | null
+  saldo: number
+  vencido: number
+  disponible: number | null
+  pendientes: FacturaPendiente[]
+  movimientos: MovimientoCuenta[]
+  recibos: Recibo[]
+}
+
 export type TipoMovimientoCaja = 'INGRESO' | 'EGRESO'
 
 export type CajaMovimiento = {

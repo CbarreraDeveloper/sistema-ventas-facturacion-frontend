@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiAbrir, apiCrear, apiListar, cantidad, cargarSesion, dinero, fecha, hoy, texto } from '../api/client'
-import type { Material, Obra, Tercero, Venta, VentaOpciones } from '../api/types'
+import type { EstadoCuenta, Material, Obra, Tercero, Venta, VentaOpciones } from '../api/types'
+import { SeccionCobro, useCobro } from '../components/Cobro'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { CuadroTotales, sumarTotales, totalesDe } from '../components/Totales'
 import { Aviso, Barra, Campo, Dialogo, mascaraMonto, numeroOpcional, textoOpcional } from '../components/ui'
@@ -12,13 +13,6 @@ type Linea = {
   cantidad: string
   precio: string
   descuento: string
-}
-
-type Cobro = {
-  clave: number
-  medioId: string
-  monto: string
-  referencia: string
 }
 
 const SIN_NOMBRE = 'SIN NOMBRE'
@@ -183,8 +177,9 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [siguiente, setSiguiente] = useState(1)
-  const [cobros, setCobros] = useState<Cobro[]>([])
-  const [recibido, setRecibido] = useState('')
+  const [cuenta, setCuenta] = useState<EstadoCuenta | null>(null)
+  const totales = sumarTotales(lineas.map((linea) => ({ total: totalLinea(linea), porcentaje: linea.material.porcentajeIva })))
+  const cobro = useCobro(totales.total, opciones?.medios ?? [])
 
   useEffect(() => {
     Promise.all([
@@ -209,6 +204,7 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
   useEffect(() => {
     setObraId('')
     setObras([])
+    setCuenta(null)
     if (clienteId === null) {
       return
     }
@@ -217,6 +213,13 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
       .then((lista) => {
         if (vigente) {
           setObras(lista)
+        }
+      })
+      .catch(() => undefined)
+    apiListar<EstadoCuenta>(`/cuentas/clientes/${clienteId}`)
+      .then((estado) => {
+        if (vigente) {
+          setCuenta(estado)
         }
       })
       .catch(() => undefined)
@@ -276,23 +279,6 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
     setLineas((actuales) => actuales.filter((linea) => linea.clave !== clave))
   }
 
-  function agregarCobro() {
-    const primero = otrosMedios[0]
-    if (!primero) {
-      return
-    }
-    setCobros((actuales) => [...actuales, { clave: siguiente, medioId: String(primero.id), monto: '', referencia: '' }])
-    setSiguiente((valorActual) => valorActual + 1)
-  }
-
-  function cambiarCobro(clave: number, campo: 'medioId' | 'monto' | 'referencia', valor: string) {
-    setCobros((actuales) =>
-      actuales.map((cobro) =>
-        cobro.clave === clave ? { ...cobro, [campo]: campo === 'monto' ? mascaraMonto(valor, 0) : valor } : cobro,
-      ),
-    )
-  }
-
   async function guardar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!sinNombre && !cliente) {
@@ -325,31 +311,14 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
       setError('Hay un descuento mayor que el importe de su línea')
       return
     }
-    const pagos: { medioPagoId: number; monto: number; referencia: string | null }[] = []
     if (condicion === 'CONTADO') {
-      if (cobros.some((cobro) => !numeroOpcional(cobro.monto))) {
-        setError('Indicá el monto de cada medio de pago o quitalo')
+      const problema = cobro.validar()
+      if (problema) {
+        setError(problema)
         return
-      }
-      if (efectivoACobrar < 0) {
-        setError('Los otros medios de pago superan el total de la factura')
-        return
-      }
-      if (recibidoEfectivo != null && recibidoEfectivo < efectivoACobrar) {
-        setError('El efectivo recibido no alcanza para el total')
-        return
-      }
-      for (const cobro of cobros) {
-        pagos.push({
-          medioPagoId: Number(cobro.medioId),
-          monto: numeroOpcional(cobro.monto) ?? 0,
-          referencia: textoOpcional(cobro.referencia.trim()),
-        })
-      }
-      if (efectivoACobrar > 0 && medioEfectivo) {
-        pagos.push({ medioPagoId: medioEfectivo.id, monto: efectivoACobrar, referencia: null })
       }
     }
+    const pagos = condicion === 'CONTADO' ? cobro.pagos() : []
     const form = event.currentTarget
     const plazoTexto = (form.elements.namedItem('plazoDias') as HTMLInputElement | null)?.value.trim() ?? ''
     const plazoDias = condicion === 'CREDITO' && plazoTexto ? Number(plazoTexto) : null
@@ -358,10 +327,9 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
       return
     }
     const punto = opciones?.puntos.find((item) => String(item.puntoExpedicionId) === puntoId)
-    const total = sumarTotales(lineas.map((linea) => ({ total: totalLinea(linea), porcentaje: linea.material.porcentajeIva }))).total
     if (
       !window.confirm(
-        `¿Emitir la factura ${punto?.proximoComprobante ?? ''} por Gs. ${dinero(total)} a ${cliente?.razonSocial ?? SIN_NOMBRE}?`,
+        `¿Emitir la factura ${punto?.proximoComprobante ?? ''} por Gs. ${dinero(totales.total)} a ${cliente?.razonSocial ?? SIN_NOMBRE}?`,
       )
     ) {
       return
@@ -388,14 +356,9 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
     }
   }
 
-  const totales = sumarTotales(lineas.map((linea) => ({ total: totalLinea(linea), porcentaje: linea.material.porcentajeIva })))
   const puntoElegido = opciones?.puntos.find((item) => String(item.puntoExpedicionId) === puntoId)
-  const medioEfectivo = opciones?.medios.find((medio) => medio.codigo === 'EFECTIVO')
-  const otrosMedios = opciones?.medios.filter((medio) => medio.codigo !== 'EFECTIVO') ?? []
-  const cobradoOtros = cobros.reduce((suma, cobro) => suma + (numeroOpcional(cobro.monto) ?? 0), 0)
-  const efectivoACobrar = totales.total - cobradoOtros
-  const recibidoEfectivo = numeroOpcional(recibido)
-  const vuelto = recibidoEfectivo == null ? null : recibidoEfectivo - efectivoACobrar
+  const excedeLimite =
+    condicion === 'CREDITO' && cuenta?.limiteCredito ? cuenta.saldo + totales.total > cuenta.limiteCredito : false
   const bloqueo = !opciones
     ? null
     : !opciones.empresaConfigurada
@@ -479,6 +442,14 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
             <input name="notaRemision" maxLength={30} />
           </Campo>
         </div>
+        {condicion === 'CREDITO' && cuenta ? (
+          <p className={excedeLimite || cuenta.vencido > 0 ? 'ayuda falta' : 'ayuda'}>
+            Cuenta del cliente: debe Gs. {dinero(cuenta.saldo)}
+            {cuenta.vencido > 0 ? `, de los cuales Gs. ${dinero(cuenta.vencido)} están vencidos` : ''}.
+            {cuenta.limiteCredito ? ` Límite de crédito Gs. ${dinero(cuenta.limiteCredito)}.` : ' Sin límite de crédito.'}
+            {excedeLimite ? ' Con esta factura supera el límite y no se va a poder emitir.' : ''}
+          </p>
+        ) : null}
         {puntoElegido ? (
           <p className="ayuda">
             Timbrado {puntoElegido.timbrado}, vigente hasta {fecha(puntoElegido.vigenteHasta)}. Quedan {puntoElegido.disponibles} números.
@@ -569,94 +540,7 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
         ) : null}
         <CuadroTotales totales={totales} />
         {condicion === 'CONTADO' && opciones?.cajaAbierta ? (
-          <div className="ficha cobro">
-            <div className="seccion-cabecera">
-              <div>
-                <h3>Cobro</h3>
-                <p>El efectivo es lo que falta para completar el total después de los otros medios.</p>
-              </div>
-              {otrosMedios.length > 0 ? (
-                <button type="button" className="btn ghost" onClick={agregarCobro}>
-                  Agregar transferencia, cheque o tarjeta
-                </button>
-              ) : null}
-            </div>
-            <div className="tabla-contenedor">
-              <table className="tabla lineas">
-                <thead>
-                  <tr>
-                    <th>Medio</th>
-                    <th className="numero">Monto</th>
-                    <th>Referencia</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {cobros.map((cobro) => (
-                    <tr key={cobro.clave}>
-                      <td>
-                        <select
-                          aria-label="Medio de pago"
-                          value={cobro.medioId}
-                          onChange={(event) => cambiarCobro(cobro.clave, 'medioId', event.target.value)}
-                        >
-                          {otrosMedios.map((medio) => (
-                            <option key={medio.id} value={medio.id}>
-                              {medio.nombre}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          className="monto"
-                          inputMode="numeric"
-                          aria-label="Monto cobrado"
-                          value={cobro.monto}
-                          onChange={(event) => cambiarCobro(cobro.clave, 'monto', event.target.value)}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          aria-label="Referencia del cobro"
-                          value={cobro.referencia}
-                          maxLength={80}
-                          placeholder="N° de operación, cheque o voucher"
-                          onChange={(event) => cambiarCobro(cobro.clave, 'referencia', event.target.value)}
-                        />
-                      </td>
-                      <td className="acciones">
-                        <button
-                          type="button"
-                          className="btn ghost"
-                          onClick={() => setCobros((actuales) => actuales.filter((item) => item.clave !== cobro.clave))}
-                        >
-                          Quitar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  <tr>
-                    <td>Efectivo</td>
-                    <td className={efectivoACobrar < 0 ? 'numero falta' : 'numero'}>{dinero(efectivoACobrar)}</td>
-                    <td>
-                      <input
-                        className="monto"
-                        inputMode="numeric"
-                        aria-label="Efectivo recibido"
-                        value={recibido}
-                        placeholder="Recibido (opcional)"
-                        onChange={(event) => setRecibido(mascaraMonto(event.target.value, 0))}
-                      />
-                    </td>
-                    <td className="numero vuelto">
-                      {vuelto == null ? null : vuelto < 0 ? <span className="falta">Faltan {dinero(-vuelto)}</span> : <strong>Vuelto {dinero(vuelto)}</strong>}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <SeccionCobro cobro={cobro} detalle="El efectivo es lo que falta para completar el total después de los otros medios." />
         ) : null}
         <div className="grilla">
           <div className="span">
@@ -668,7 +552,7 @@ function NuevaVenta({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardada
             <button className="btn" type="button" onClick={onCerrar}>
               Cancelar
             </button>
-            <button className="btn primary" type="submit" disabled={guardando || !opciones || bloqueo !== null}>
+            <button className="btn primary" type="submit" disabled={guardando || !opciones || bloqueo !== null || excedeLimite}>
               Emitir factura
             </button>
           </div>

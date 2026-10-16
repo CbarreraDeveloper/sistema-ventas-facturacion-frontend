@@ -5,6 +5,7 @@ import { AppShell } from './layout/AppShell'
 import { CambiarClavePage, LoginPage } from './pages/AccesoPage'
 import { CajaPage } from './pages/CajaPage'
 import { ComprasPage } from './pages/ComprasPage'
+import { CuentasPage } from './pages/CuentasPage'
 import { EmpresaPage } from './pages/EmpresaPage'
 import { InicioPage } from './pages/InicioPage'
 import { MaterialesPage } from './pages/MaterialesPage'
@@ -35,6 +36,9 @@ function Pantalla({ ruta }: { ruta: string }) {
   }
   if (ruta === '/caja') {
     return <CajaPage />
+  }
+  if (ruta === '/cuentas') {
+    return <CuentasPage />
   }
   if (ruta === '/compras') {
     return <ComprasPage />
