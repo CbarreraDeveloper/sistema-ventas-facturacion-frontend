@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiAbrir, apiCrear, apiListar, cantidad, cargarSesion, dinero, fecha, hoy, texto } from '../api/client'
-import type { EstadoCuenta, Material, Obra, Presupuesto, Tercero, Venta, VentaOpciones } from '../api/types'
+import type { EntregaPendiente, EstadoCuenta, Material, Obra, Presupuesto, Remision, Tercero, Venta, VentaOpciones } from '../api/types'
 import { SeccionCobro, useCobro } from '../components/Cobro'
 import { etiquetaCliente, SIN_NOMBRE } from '../components/etiquetas'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { EditorRenglones, useRenglones } from '../components/Renglones'
 import { CuadroTotales, totalesDe } from '../components/Totales'
 import { Aviso, Barra, Campo, Dialogo, textoOpcional } from '../components/ui'
+import { DetalleRemision, NuevaRemision } from './RemisionesPage'
 
 export function VentasPage() {
   const [ventas, setVentas] = useState<Venta[]>([])
@@ -417,7 +418,39 @@ export function DetalleVenta({
 }) {
   const [error, setError] = useState<string | null>(null)
   const [anulando, setAnulando] = useState(false)
+  const [remisiones, setRemisiones] = useState<Remision[]>([])
+  const [pendientes, setPendientes] = useState<EntregaPendiente[]>([])
+  const [remitiendo, setRemitiendo] = useState(false)
+  const [remision, setRemision] = useState<Remision | null>(null)
   const esAdmin = cargarSesion()?.roles.includes('ADMIN') ?? false
+
+  async function cargarEntregas() {
+    try {
+      const [lista, faltan] = await Promise.all([
+        apiListar<Remision[]>(`/remisiones/factura/${venta.id}`),
+        apiListar<EntregaPendiente[]>(`/remisiones/factura/${venta.id}/pendiente`),
+      ])
+      setRemisiones(lista)
+      setPendientes(faltan)
+    } catch {
+      setRemisiones([])
+      setPendientes([])
+    }
+  }
+
+  useEffect(() => {
+    void cargarEntregas()
+  }, [venta.id])
+
+  async function verRemision(id: number) {
+    try {
+      setRemision(await apiListar<Remision>(`/remisiones/${id}`))
+    } catch (causa) {
+      setError(causa instanceof Error ? causa.message : 'No se pudo abrir la nota de remisión')
+    }
+  }
+
+  const porEntregar = pendientes.filter((entrega) => entrega.pendiente > 0)
 
   async function imprimir() {
     try {
@@ -446,96 +479,166 @@ export function DetalleVenta({
   }
 
   return (
-    <Dialogo clase="ancho" titulo={`Factura ${venta.numeroComprobante}`} onCerrar={onCerrar}>
-      <Aviso mensaje={error} />
-      <div className="grilla tres">
-        <Campo etiqueta="Cliente">
-          <strong>{venta.cliente}</strong>
-        </Campo>
-        <Campo etiqueta="RUC / CI">
-          <strong>{texto(venta.clienteDocumento)}</strong>
-        </Campo>
-        <Campo etiqueta="Fecha">
-          <strong>{fecha(venta.fecha)}</strong>
-        </Campo>
-        <Campo etiqueta="Condición">
-          <strong>
-            {venta.condicion === 'CREDITO' ? `Crédito${venta.plazoDias ? ` a ${venta.plazoDias} días` : ''}` : 'Contado'}
-          </strong>
-        </Campo>
-        <Campo etiqueta="Nota de remisión">
-          <strong>{texto(venta.notaRemision)}</strong>
-        </Campo>
-        <Campo etiqueta="Obra">
-          <strong>{texto(venta.obra)}</strong>
-        </Campo>
-        <Campo etiqueta="Presupuesto">
-          <strong>{texto(venta.presupuestoNumero)}</strong>
-        </Campo>
-        <Campo etiqueta="Timbrado">
-          <strong>{venta.timbradoNumero}</strong>
-        </Campo>
-        <Campo etiqueta="Lista de precios">
-          <strong>{texto(venta.listaPrecio)}</strong>
-        </Campo>
-        <Campo etiqueta="Emitida por">
-          <strong>{texto(venta.usuario)}</strong>
-        </Campo>
-        <Campo etiqueta="Estado">
-          <span className={venta.estado === 'ANULADO' ? 'estado anulado' : 'estado'}>{venta.estado}</span>
-        </Campo>
-      </div>
-      <div className="tabla-contenedor bloque">
-        <table className="tabla lineas">
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Descripción</th>
-              <th className="numero">Cantidad</th>
-              <th className="numero">Precio unitario</th>
-              <th className="numero">Descuento</th>
-              <th className="numero">IVA</th>
-              <th className="numero">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {venta.lineas.map((linea, indice) => (
-              <tr key={`${linea.codigo}-${indice}`}>
-                <td>{texto(linea.codigo)}</td>
-                <td>{linea.descripcion}</td>
-                <td className="numero">{cantidad(linea.cantidad)}</td>
-                <td className="numero">{dinero(linea.precioUnitario)}</td>
-                <td className="numero">{linea.descuento ? dinero(linea.descuento) : '—'}</td>
-                <td className="numero">{dinero(linea.porcentajeIva)}%</td>
-                <td className="numero">{dinero(linea.total)}</td>
+    <>
+      <Dialogo clase="ancho" titulo={`Factura ${venta.numeroComprobante}`} onCerrar={onCerrar}>
+        <Aviso mensaje={error} />
+        <div className="grilla tres">
+          <Campo etiqueta="Cliente">
+            <strong>{venta.cliente}</strong>
+          </Campo>
+          <Campo etiqueta="RUC / CI">
+            <strong>{texto(venta.clienteDocumento)}</strong>
+          </Campo>
+          <Campo etiqueta="Fecha">
+            <strong>{fecha(venta.fecha)}</strong>
+          </Campo>
+          <Campo etiqueta="Condición">
+            <strong>
+              {venta.condicion === 'CREDITO' ? `Crédito${venta.plazoDias ? ` a ${venta.plazoDias} días` : ''}` : 'Contado'}
+            </strong>
+          </Campo>
+          <Campo etiqueta="Nota de remisión">
+            <strong>{texto(venta.notaRemision)}</strong>
+          </Campo>
+          <Campo etiqueta="Obra">
+            <strong>{texto(venta.obra)}</strong>
+          </Campo>
+          <Campo etiqueta="Presupuesto">
+            <strong>{texto(venta.presupuestoNumero)}</strong>
+          </Campo>
+          <Campo etiqueta="Timbrado">
+            <strong>{venta.timbradoNumero}</strong>
+          </Campo>
+          <Campo etiqueta="Lista de precios">
+            <strong>{texto(venta.listaPrecio)}</strong>
+          </Campo>
+          <Campo etiqueta="Emitida por">
+            <strong>{texto(venta.usuario)}</strong>
+          </Campo>
+          <Campo etiqueta="Estado">
+            <span className={venta.estado === 'ANULADO' ? 'estado anulado' : 'estado'}>{venta.estado}</span>
+          </Campo>
+        </div>
+        <div className="tabla-contenedor bloque">
+          <table className="tabla lineas">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Descripción</th>
+                <th className="numero">Cantidad</th>
+                <th className="numero">Precio unitario</th>
+                <th className="numero">Descuento</th>
+                <th className="numero">IVA</th>
+                <th className="numero">Total</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <CuadroTotales totales={totalesDe(venta)} />
-      {venta.pagos.length > 0 ? (
-        <p className="ayuda">
-          Cobrado:{' '}
-          {venta.pagos
-            .map((pago) => `${pago.medio} Gs. ${dinero(pago.monto)}${pago.referencia ? ` (${pago.referencia})` : ''}`)
-            .join(' · ')}
-        </p>
-      ) : null}
-      {venta.observacion ? <p className="ayuda">{venta.observacion}</p> : null}
-      <div className="dialogo-acciones">
-        {esAdmin && venta.estado === 'CONFIRMADO' ? (
-          <button type="button" className="btn" disabled={anulando} onClick={() => void anular()}>
-            Anular factura
-          </button>
+            </thead>
+            <tbody>
+              {venta.lineas.map((linea, indice) => (
+                <tr key={`${linea.codigo}-${indice}`}>
+                  <td>{texto(linea.codigo)}</td>
+                  <td>{linea.descripcion}</td>
+                  <td className="numero">{cantidad(linea.cantidad)}</td>
+                  <td className="numero">{dinero(linea.precioUnitario)}</td>
+                  <td className="numero">{linea.descuento ? dinero(linea.descuento) : '—'}</td>
+                  <td className="numero">{dinero(linea.porcentajeIva)}%</td>
+                  <td className="numero">{dinero(linea.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <CuadroTotales totales={totalesDe(venta)} />
+        {venta.pagos.length > 0 ? (
+          <p className="ayuda">
+            Cobrado:{' '}
+            {venta.pagos
+              .map((pago) => `${pago.medio} Gs. ${dinero(pago.monto)}${pago.referencia ? ` (${pago.referencia})` : ''}`)
+              .join(' · ')}
+          </p>
         ) : null}
-        <button type="button" className="btn" onClick={() => void imprimir()}>
-          Imprimir PDF
-        </button>
-        <button type="button" className="btn primary" onClick={onCerrar}>
-          Cerrar
-        </button>
-      </div>
-    </Dialogo>
+        {venta.observacion ? <p className="ayuda">{venta.observacion}</p> : null}
+        {remisiones.length > 0 ? (
+          <>
+            <h3 className="bloque">Notas de remisión</h3>
+            <div className="tabla-contenedor">
+              <table className="tabla">
+                <thead>
+                  <tr>
+                    <th className="fecha">Fecha</th>
+                    <th>Número</th>
+                    <th>Llegada</th>
+                    <th>Chapa</th>
+                    <th>Estado</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {remisiones.map((item) => (
+                    <tr key={item.id} className={item.estado === 'ANULADO' ? 'baja' : undefined}>
+                      <td className="fecha">{fecha(item.fecha)}</td>
+                      <td>{item.numeroComprobante}</td>
+                      <td>{item.puntoLlegada}</td>
+                      <td>{item.vehiculoChapa}</td>
+                      <td>
+                        <span className={item.estado === 'ANULADO' ? 'estado anulado' : 'estado'}>{item.estado}</span>
+                      </td>
+                      <td className="acciones">
+                        <button type="button" className="btn ghost" onClick={() => void verRemision(item.id)}>
+                          Ver
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="ayuda">
+              {porEntregar.length === 0
+                ? 'Toda la mercadería facturada ya tiene nota de remisión.'
+                : `Falta remitir: ${porEntregar.map((entrega) => `${entrega.codigo} ${cantidad(entrega.pendiente)}`).join(' · ')}`}
+            </p>
+          </>
+        ) : null}
+        <div className="dialogo-acciones">
+          {esAdmin && venta.estado === 'CONFIRMADO' ? (
+            <button type="button" className="btn" disabled={anulando} onClick={() => void anular()}>
+              Anular factura
+            </button>
+          ) : null}
+          {venta.estado === 'CONFIRMADO' && porEntregar.length > 0 ? (
+            <button type="button" className="btn" onClick={() => setRemitiendo(true)}>
+              Nota de remisión
+            </button>
+          ) : null}
+          <button type="button" className="btn" onClick={() => void imprimir()}>
+            Imprimir PDF
+          </button>
+          <button type="button" className="btn primary" onClick={onCerrar}>
+            Cerrar
+          </button>
+        </div>
+      </Dialogo>
+      {remitiendo ? (
+        <NuevaRemision
+          factura={venta}
+          onCerrar={() => setRemitiendo(false)}
+          onGuardada={(nueva) => {
+            setRemitiendo(false)
+            setRemision(nueva)
+            void cargarEntregas()
+          }}
+        />
+      ) : null}
+      {remision ? (
+        <DetalleRemision
+          remision={remision}
+          onCerrar={() => setRemision(null)}
+          onAnulada={(anulada) => {
+            setRemision(anulada)
+            void cargarEntregas()
+          }}
+        />
+      ) : null}
+    </>
   )
 }

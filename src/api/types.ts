@@ -369,3 +369,60 @@ export type Usuario = {
   mustChangePassword: boolean
   activo: boolean
 }
+
+export type MotivoTraslado = 'VENTA' | 'CONSIGNACION' | 'DEVOLUCION' | 'TRASLADO_ENTRE_LOCALES' | 'EXHIBICION' | 'OTRO'
+
+export type RemisionLinea = {
+  productoId: number | null
+  codigo: string | null
+  descripcion: string
+  unidad: string | null
+  cantidad: number
+}
+
+export type Remision = {
+  id: number
+  numeroComprobante: string
+  fecha: string
+  estado: 'BORRADOR' | 'CONFIRMADO' | 'ANULADO'
+  timbradoNumero: string
+  clienteId: number | null
+  cliente: string
+  clienteDocumento: string | null
+  clienteDireccion: string | null
+  obraId: number | null
+  obra: string | null
+  facturaId: number | null
+  facturaNumero: string | null
+  motivo: MotivoTraslado
+  fechaInicioTraslado: string
+  fechaFinTraslado: string | null
+  puntoPartida: string
+  puntoLlegada: string
+  transportistaNombre: string | null
+  transportistaRuc: string | null
+  vehiculoMarca: string | null
+  vehiculoChapa: string
+  conductorNombre: string
+  conductorDocumento: string
+  conductorDireccion: string | null
+  observacion: string | null
+  usuario: string | null
+  lineas: RemisionLinea[]
+}
+
+export type RemisionOpciones = {
+  empresaConfigurada: boolean
+  puntoPartida: string | null
+  puntos: PuntoVenta[]
+}
+
+export type EntregaPendiente = {
+  productoId: number
+  codigo: string
+  descripcion: string
+  unidad: string
+  facturado: number
+  remitido: number
+  pendiente: number
+}
