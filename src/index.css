@@ -862,6 +862,38 @@ a {
   color: #1b3142;
 }
 
+.pestanas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 16px;
+}
+
+.pestanas button {
+  padding: 7px 14px;
+  border: 1px solid #d5cbbd;
+  border-radius: 999px;
+  background: #fffdf9;
+  color: #1b3142;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.pestanas button.activa {
+  border-color: #1b3142;
+  background: #1b3142;
+  color: #f7f4ee;
+}
+
+.periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 @media (max-width: 860px) {
   .desk {
     display: block;

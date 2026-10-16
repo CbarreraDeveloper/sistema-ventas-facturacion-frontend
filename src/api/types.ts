@@ -362,6 +362,129 @@ export type Resumen = {
   clientes: number
 }
 
+export type ReporteVentas = {
+  desde: string
+  hasta: string
+  facturas: number
+  anuladas: number
+  contado: number
+  credito: number
+  notasCredito: number
+  neto: number
+  iva10: number
+  iva5: number
+  promedio: number
+  dias: { fecha: string; facturas: number; contado: number; credito: number; notasCredito: number; neto: number }[]
+  vendedores: { usuario: string; facturas: number; facturado: number; notasCredito: number; neto: number }[]
+}
+
+export type ProductoVendido = {
+  codigo: string
+  descripcion: string
+  rubro: string | null
+  unidad: string | null
+  cantidad: number
+  importe: number
+  costoUnitario: number
+  costo: number
+  utilidad: number
+  margen: number
+}
+
+export type ReporteProductos = {
+  desde: string
+  hasta: string
+  importe: number
+  costo: number
+  utilidad: number
+  margen: number
+  lineas: ProductoVendido[]
+}
+
+export type LineaLibroIva = {
+  id: number
+  fecha: string
+  tipo: string
+  numero: string
+  timbrado: string | null
+  ruc: string | null
+  razonSocial: string
+  condicion: 'CONTADO' | 'CREDITO'
+  estado: string
+  gravado10: number
+  iva10: number
+  gravado5: number
+  iva5: number
+  exento: number
+  total: number
+}
+
+export type LibroIva = {
+  desde: string
+  hasta: string
+  gravado10: number
+  iva10: number
+  gravado5: number
+  iva5: number
+  exento: number
+  total: number
+  lineas: LineaLibroIva[]
+}
+
+export type LineaStock = {
+  codigo: string
+  descripcion: string
+  rubro: string | null
+  unidad: string
+  existencia: number
+  costo: number
+  valorizado: number
+}
+
+export type ReporteStock = {
+  productos: number
+  sinStock: number
+  valorizado: number
+  lineas: LineaStock[]
+}
+
+export type DeudaCliente = {
+  clienteId: number
+  cliente: string
+  documento: string | null
+  facturas: number
+  vencimientoMasAntiguo: string
+  saldo: number
+  porVencer: number
+  hasta30: number
+  hasta60: number
+  hasta90: number
+  mas90: number
+}
+
+export type ReporteCobranzas = {
+  corte: string
+  saldo: number
+  porVencer: number
+  hasta30: number
+  hasta60: number
+  hasta90: number
+  mas90: number
+  clientes: DeudaCliente[]
+}
+
+export type FilaCaja = { nombre: string; ingresos: number; egresos: number; neto: number }
+
+export type ReporteCaja = {
+  desde: string
+  hasta: string
+  ingresos: number
+  egresos: number
+  neto: number
+  medios: FilaCaja[]
+  origenes: FilaCaja[]
+}
+
 export type Usuario = {
   id: number
   nombre: string

@@ -103,6 +103,9 @@ export function AppShell({ ruta, children }: { ruta: string; children: ReactNode
             ))}
             {sesion?.roles.includes('ADMIN') ? (
               <>
+                <a href="#/reportes" className={seccion === 'reportes' ? 'activo' : undefined}>
+                  Reportes
+                </a>
                 <a href="#/empresa" className={seccion === 'empresa' ? 'activo' : undefined}>
                   Empresa
                 </a>

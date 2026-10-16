@@ -12,6 +12,7 @@ import { MaterialesPage } from './pages/MaterialesPage'
 import { NotasCreditoPage } from './pages/NotasCreditoPage'
 import { PresupuestosPage } from './pages/PresupuestosPage'
 import { RemisionesPage } from './pages/RemisionesPage'
+import { ReportesPage } from './pages/ReportesPage'
 import { ClientesPage, ProveedoresPage } from './pages/TercerosPage'
 import { UsuariosPage } from './pages/UsuariosPage'
 import { VentasPage } from './pages/VentasPage'
@@ -42,6 +43,9 @@ function Pantalla({ ruta }: { ruta: string }) {
   }
   if (ruta === '/presupuestos') {
     return <PresupuestosPage />
+  }
+  if (ruta === '/reportes') {
+    return <ReportesPage />
   }
   if (ruta === '/notas-credito') {
     return <NotasCreditoPage />
