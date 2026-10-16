@@ -138,6 +138,52 @@ export type Venta = {
   total: number
   usuario: string | null
   lineas: VentaLinea[]
+  pagos: PagoLinea[]
+}
+
+export type PagoLinea = {
+  medio: string
+  monto: number
+  referencia: string | null
+}
+
+export type TipoMovimientoCaja = 'INGRESO' | 'EGRESO'
+
+export type CajaMovimiento = {
+  id: number
+  fecha: string
+  tipo: TipoMovimientoCaja
+  medio: string
+  monto: number
+  concepto: string
+  comprobanteId: number | null
+  usuario: string | null
+}
+
+export type CajaTotalMedio = {
+  codigo: string
+  medio: string
+  ingresos: number
+  egresos: number
+  saldo: number
+}
+
+export type CajaSesion = {
+  id: number
+  sucursal: string
+  usuario: string
+  abiertaEn: string
+  cerradaEn: string | null
+  estado: 'ABIERTA' | 'CERRADA'
+  montoApertura: number
+  efectivoEsperado: number
+  montoCierre: number | null
+  diferencia: number | null
+  totalIngresos: number
+  totalEgresos: number
+  observacion: string | null
+  totales: CajaTotalMedio[]
+  movimientos: CajaMovimiento[]
 }
 
 export type PuntoVenta = {
@@ -154,6 +200,8 @@ export type VentaOpciones = {
   empresaConfigurada: boolean
   puntos: PuntoVenta[]
   listas: OpcionCatalogo[]
+  medios: OpcionCatalogo[]
+  cajaAbierta: boolean
 }
 
 export type Empresa = {

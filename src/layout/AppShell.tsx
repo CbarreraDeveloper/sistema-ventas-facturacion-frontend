@@ -21,6 +21,7 @@ function nombreVisible(nombre: string | undefined, usuario: string | undefined):
 const ENLACES = [
   { href: '#/', etiqueta: 'Inicio' },
   { href: '#/ventas', etiqueta: 'Ventas' },
+  { href: '#/caja', etiqueta: 'Caja' },
   { href: '#/materiales', etiqueta: 'Materiales' },
   { href: '#/compras', etiqueta: 'Compras' },
   { href: '#/clientes', etiqueta: 'Clientes' },

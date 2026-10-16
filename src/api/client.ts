@@ -191,6 +191,13 @@ export function fecha(valor: string | null | undefined): string {
   return `${dia}/${mes}/${anio}`
 }
 
+export function fechaHora(valor: string | null | undefined): string {
+  if (!valor) {
+    return '—'
+  }
+  return `${fecha(valor)} ${valor.slice(11, 16)}`
+}
+
 export function hoy(): string {
   const ahora = new Date()
   const parte = (valor: number) => String(valor).padStart(2, '0')

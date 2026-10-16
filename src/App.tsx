@@ -3,6 +3,7 @@ import { apiEnviar, AUTH_EVENT, cargarSesion, guardarSesion } from './api/client
 import type { Sesion, Usuario } from './api/types'
 import { AppShell } from './layout/AppShell'
 import { CambiarClavePage, LoginPage } from './pages/AccesoPage'
+import { CajaPage } from './pages/CajaPage'
 import { ComprasPage } from './pages/ComprasPage'
 import { EmpresaPage } from './pages/EmpresaPage'
 import { InicioPage } from './pages/InicioPage'
@@ -31,6 +32,9 @@ function Pantalla({ ruta }: { ruta: string }) {
   }
   if (ruta === '/ventas') {
     return <VentasPage />
+  }
+  if (ruta === '/caja') {
+    return <CajaPage />
   }
   if (ruta === '/compras') {
     return <ComprasPage />
