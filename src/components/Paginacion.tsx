@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const TAMANO = 20
+const TAMANO = 10
 
 export type PaginacionEstado<T> = {
   filas: T[]

@@ -163,8 +163,13 @@ function FormularioMaterial({
     event.preventDefault()
     const form = event.currentTarget
     const costo = numeroOpcional(valorInput(form, 'costo'))
-    if (costo == null) {
-      setError('El costo es obligatorio')
+    const precioMinorista = numeroOpcional(valorInput(form, 'precioMinorista'))
+    const precioMayorista = numeroOpcional(valorInput(form, 'precioMayorista'))
+    const precioEspecial = numeroOpcional(valorInput(form, 'precioEspecial'))
+    const problema = validarPrecios(costo, precioMinorista, precioMayorista, precioEspecial)
+    if (problema) {
+      setError(problema)
+      form.closest('.dialogo')?.scrollTo({ top: 0 })
       return
     }
     const cuerpo = {
@@ -175,9 +180,9 @@ function FormularioMaterial({
       tasaIvaId: Number(valorInput(form, 'tasaIvaId')),
       rubro: textoOpcional(valorInput(form, 'rubro')),
       costo,
-      precioMinorista: numeroOpcional(valorInput(form, 'precioMinorista')),
-      precioMayorista: numeroOpcional(valorInput(form, 'precioMayorista')),
-      precioEspecial: numeroOpcional(valorInput(form, 'precioEspecial')),
+      precioMinorista,
+      precioMayorista,
+      precioEspecial,
       controlaStock: controla,
       activo: material ? marcado(form, 'activo') : true,
       existenciaInicial: material || !controla ? null : numeroOpcional(valorInput(form, 'existenciaInicial')) ?? 0,
@@ -242,7 +247,7 @@ function FormularioMaterial({
           </datalist>
         </div>
         <Campo etiqueta="Costo">
-          <Monto name="costo" valor={material?.costo} required />
+          <Monto name="costo" valor={material?.costo} />
         </Campo>
         <Campo etiqueta="Minorista">
           <Monto name="precioMinorista" valor={material?.precioMinorista} />
@@ -365,6 +370,45 @@ function FormularioStock({
       </form>
     </Dialogo>
   )
+}
+
+function validarPrecios(
+  costo: number | null,
+  minorista: number | null,
+  mayorista: number | null,
+  especial: number | null,
+): string | null {
+  if (costo == null) {
+    return 'El costo es obligatorio'
+  }
+  if (costo <= 0) {
+    return 'El costo debe ser mayor a cero'
+  }
+  const precios = [
+    { lista: 'minorista', valor: minorista },
+    { lista: 'mayorista', valor: mayorista },
+    { lista: 'especial', valor: especial },
+  ]
+  const cargados = precios.filter((precio): precio is { lista: string; valor: number } => precio.valor != null)
+  if (cargados.length === 0) {
+    return 'Cargá al menos un precio de venta'
+  }
+  for (const precio of cargados) {
+    if (precio.valor < 0) {
+      return `El precio ${precio.lista} no puede ser negativo`
+    }
+    if (precio.valor < costo) {
+      return `El precio ${precio.lista} no puede ser menor al costo`
+    }
+  }
+  for (let i = 0; i < cargados.length; i++) {
+    for (let j = i + 1; j < cargados.length; j++) {
+      if (cargados[i].valor < cargados[j].valor) {
+        return `El precio ${cargados[i].lista} no puede ser menor al ${cargados[j].lista}`
+      }
+    }
+  }
+  return null
 }
 
 function marcado(form: HTMLFormElement, nombre: string): boolean {

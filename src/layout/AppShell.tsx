@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { cerrarSesion, cargarSesion } from '../api/client'
 
 function nombreVisible(nombre: string | undefined, usuario: string | undefined): string {
@@ -37,9 +37,12 @@ export function AppShell({ ruta, children }: { ruta: string; children: ReactNode
   const sesion = cargarSesion()
   const seccion = ruta === '/' ? '' : (ruta.split('/')[1] ?? '')
   const [menuAbierto, setMenuAbierto] = useState(false)
+  const mesa = useRef<HTMLElement>(null)
 
   useEffect(() => {
     setMenuAbierto(false)
+    mesa.current?.scrollTo({ top: 0 })
+    window.scrollTo({ top: 0 })
   }, [ruta])
 
   useEffect(() => {
@@ -124,7 +127,9 @@ export function AppShell({ ruta, children }: { ruta: string; children: ReactNode
           </div>
         </div>
       </aside>
-      <main className="mesa">{children}</main>
+      <main ref={mesa} className="mesa">
+        {children}
+      </main>
     </div>
   )
 }

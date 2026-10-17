@@ -7,6 +7,7 @@ import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { CuadroTotales, sumarTotales, totalesDe } from '../components/Totales'
 import type { Totales } from '../components/Totales'
 import { Aviso, Barra, Campo, Dialogo, mascaraMonto, numeroOpcional, textoOpcional, valorInput } from '../components/ui'
+import { FichaTercero } from './TercerosPage'
 
 type Linea = {
   clave: number
@@ -143,6 +144,23 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
   const [credito, setCredito] = useState(false)
   const [proveedorId, setProveedorId] = useState('')
   const [plazo, setPlazo] = useState('')
+  const [altaProveedor, setAltaProveedor] = useState(false)
+
+  function elegirProveedor(id: string, lista: Tercero[] = proveedores) {
+    setProveedorId(id)
+    const proveedor = lista.find((item) => String(item.id) === id)
+    setPlazo(proveedor?.plazoDias ? String(proveedor.plazoDias) : '')
+  }
+
+  function proveedorCreado(proveedor: Tercero) {
+    const lista = [...proveedores.filter((item) => item.id !== proveedor.id), proveedor].sort((a, b) =>
+      a.razonSocial.localeCompare(b.razonSocial, 'es'),
+    )
+    setProveedores(lista)
+    elegirProveedor(String(proveedor.id), lista)
+    setAltaProveedor(false)
+    setError(null)
+  }
 
   useEffect(() => {
     Promise.all([apiListar<Tercero[]>('/terceros?rol=proveedor'), apiListar<Material[]>('/productos')])
@@ -226,27 +244,33 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
       <form onSubmit={(event) => void guardar(event)}>
         <Aviso mensaje={error} />
         <div className="grilla tres">
-          <Campo etiqueta="Proveedor">
-            <select
-              name="proveedorId"
-              required
-              value={proveedorId}
-              onChange={(event) => {
-                setProveedorId(event.target.value)
-                const proveedor = proveedores.find((item) => String(item.id) === event.target.value)
-                setPlazo(proveedor?.plazoDias ? String(proveedor.plazoDias) : '')
-              }}
-            >
-              <option value="" disabled>
-                Elegí el proveedor
-              </option>
-              {proveedores.map((proveedor) => (
-                <option key={proveedor.id} value={proveedor.id}>
-                  {proveedor.razonSocial}
+          <div className="campo-con-accion">
+            <Campo etiqueta="Proveedor">
+              <select
+                name="proveedorId"
+                required
+                value={proveedorId}
+                onChange={(event) => elegirProveedor(event.target.value)}
+              >
+                <option value="" disabled>
+                  Elegí el proveedor
                 </option>
-              ))}
-            </select>
-          </Campo>
+                {proveedores.map((proveedor) => (
+                  <option key={proveedor.id} value={proveedor.id}>
+                    {proveedor.razonSocial}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+            <button
+              type="button"
+              className="btn"
+              title="Registrar un proveedor nuevo"
+              onClick={() => setAltaProveedor(true)}
+            >
+              Nuevo
+            </button>
+          </div>
           <Campo etiqueta="Fecha">
             <input name="fecha" type="date" required defaultValue={hoy()} max={hoy()} />
           </Campo>
@@ -361,6 +385,9 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
           </div>
         </div>
       </form>
+      {altaProveedor ? (
+        <FichaTercero rol="proveedor" tercero={null} onCerrar={() => setAltaProveedor(false)} onGuardado={proveedorCreado} />
+      ) : null}
     </Dialogo>
   )
 }

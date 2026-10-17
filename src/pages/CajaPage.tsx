@@ -422,11 +422,15 @@ function CerrarCaja({
 
   async function cerrar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const form = event.currentTarget
     if (montoCierre == null || montoCierre < 0) {
       setError('Indicá el efectivo contado en la caja')
+      const campo = form.elements.namedItem('contado')
+      if (campo instanceof HTMLInputElement) {
+        campo.focus()
+      }
       return
     }
-    const form = event.currentTarget
     if (
       diferencia !== 0
       && !(await confirmar({
@@ -476,11 +480,15 @@ function CerrarCaja({
         <div className="grilla">
           <Campo etiqueta="Efectivo contado">
             <input
+              name="contado"
               className="monto"
               inputMode="numeric"
               value={contado}
-              onChange={(event) => setContado(mascaraMonto(event.target.value, 0))}
-              required
+              onChange={(event) => {
+                setContado(mascaraMonto(event.target.value, 0))
+                setError(null)
+              }}
+              aria-invalid={error !== null && montoCierre == null}
               autoFocus
             />
           </Campo>
