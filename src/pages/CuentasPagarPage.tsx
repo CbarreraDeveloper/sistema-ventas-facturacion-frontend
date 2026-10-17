@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { apiAbrir, apiCrear, apiListar, cargarSesion, dinero, fecha, texto } from '../api/client'
 import type { CajaSesion, EstadoProveedor, OpcionCatalogo, OrdenPago, SaldoProveedor, Tercero } from '../api/types'
 import { SeccionCobro, useCobro } from '../components/Cobro'
+import { confirmar } from '../components/Confirmacion'
 import { etiquetaCliente } from '../components/etiquetas'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { Aviso, Barra, Campo, Dialogo, mascaraMonto, numeroOpcional, textoOpcional } from '../components/ui'
@@ -439,10 +440,17 @@ function NuevaOrden({
       setError(`En la caja hay Gs. ${dinero(caja.efectivoEsperado)} en efectivo. No alcanza para pagar Gs. ${dinero(pago.efectivoACobrar)}`)
       return
     }
-    if (!window.confirm(`¿Emitir orden de pago por Gs. ${dinero(total)} a ${cuenta.proveedor}?`)) {
+    const form = event.currentTarget
+    if (
+      !(await confirmar({
+        titulo: 'Emitir orden de pago',
+        mensaje: `¿Emitir orden de pago por Gs. ${dinero(total)} a ${cuenta.proveedor}?`,
+        aceptar: 'Emitir orden de pago',
+      }))
+    ) {
       return
     }
-    const observacion = (event.currentTarget.elements.namedItem('observacion') as HTMLTextAreaElement).value.trim()
+    const observacion = (form.elements.namedItem('observacion') as HTMLTextAreaElement).value.trim()
     setGuardando(true)
     try {
       onGuardada(
@@ -587,7 +595,14 @@ function DetalleOrden({
   }
 
   async function anular() {
-    if (!window.confirm(`¿Anular la orden de pago ${orden.numero}? Las facturas vuelven a quedar pendientes y el dinero vuelve a la caja como ingreso.`)) {
+    if (
+      !(await confirmar({
+        titulo: 'Anular orden de pago',
+        mensaje: `¿Anular la orden de pago ${orden.numero}? Las facturas vuelven a quedar pendientes y el dinero vuelve a la caja como ingreso.`,
+        aceptar: 'Anular orden',
+        peligro: true,
+      }))
+    ) {
       return
     }
     setAnulando(true)

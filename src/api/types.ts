@@ -55,6 +55,7 @@ export type Tercero = {
   telefono: string | null
   celular: string | null
   email: string | null
+  direccion: string | null
   esCliente: boolean
   esProveedor: boolean
   limiteCredito: number | null

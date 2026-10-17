@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiCrear, apiListar, cargarSesion, dinero, fechaHora, texto } from '../api/client'
+import { confirmar } from '../components/Confirmacion'
 import type { CajaSesion, OpcionCatalogo, TipoMovimientoCaja } from '../api/types'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { Aviso, Barra, Campo, Dialogo, mascaraMonto, numeroOpcional, textoOpcional } from '../components/ui'
@@ -421,14 +422,27 @@ function CerrarCaja({
 
   async function cerrar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const form = event.currentTarget
     if (montoCierre == null || montoCierre < 0) {
       setError('Indicá el efectivo contado en la caja')
+      const campo = form.elements.namedItem('contado')
+      if (campo instanceof HTMLInputElement) {
+        campo.focus()
+      }
       return
     }
-    if (diferencia !== 0 && !window.confirm(`El arqueo da una diferencia de Gs. ${dinero(diferencia)}. ¿Cerrar la caja igual?`)) {
+    if (
+      diferencia !== 0
+      && !(await confirmar({
+        titulo: 'Diferencia en el arqueo',
+        mensaje: `El arqueo da una diferencia de Gs. ${dinero(diferencia)}. ¿Cerrar la caja igual?`,
+        aceptar: 'Cerrar caja igual',
+        peligro: true,
+      }))
+    ) {
       return
     }
-    const observacion = (event.currentTarget.elements.namedItem('observacion') as HTMLTextAreaElement).value.trim()
+    const observacion = (form.elements.namedItem('observacion') as HTMLTextAreaElement).value.trim()
     setGuardando(true)
     try {
       const ruta = ajena ? `/caja/sesiones/${sesion.id}/cerrar` : '/caja/cerrar'
@@ -466,11 +480,15 @@ function CerrarCaja({
         <div className="grilla">
           <Campo etiqueta="Efectivo contado">
             <input
+              name="contado"
               className="monto"
               inputMode="numeric"
               value={contado}
-              onChange={(event) => setContado(mascaraMonto(event.target.value, 0))}
-              required
+              onChange={(event) => {
+                setContado(mascaraMonto(event.target.value, 0))
+                setError(null)
+              }}
+              aria-invalid={error !== null && montoCierre == null}
               autoFocus
             />
           </Campo>

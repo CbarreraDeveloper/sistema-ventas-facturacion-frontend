@@ -211,7 +211,13 @@ export function EmpresaPage() {
             </tbody>
           </table>
         </div>
-        {puntos.length === 0 ? <p className="vacio">Cargá al menos un punto de expedición para poder facturar.</p> : null}
+        {puntos.length === 0 ? (
+          <p className="vacio">
+            {sucursales.length === 0
+              ? 'Para agregar un punto de expedición, primero creá una sucursal.'
+              : 'Cargá al menos un punto de expedición con "Nuevo punto" para poder cargar timbrados y facturar.'}
+          </p>
+        ) : null}
       </div>
 
       <div className="seccion">
@@ -266,7 +272,13 @@ export function EmpresaPage() {
             </tbody>
           </table>
         </div>
-        {timbrados.length === 0 ? <p className="vacio">Todavía no hay timbrados cargados.</p> : null}
+        {timbrados.length === 0 ? (
+          <p className="vacio">
+            {puntos.length === 0
+              ? 'Para cargar un timbrado, primero agregá el punto de expedición (por ejemplo 001-001) en la sección de arriba.'
+              : 'Todavía no hay timbrados cargados.'}
+          </p>
+        ) : null}
       </div>
 
       {sucursal ? (

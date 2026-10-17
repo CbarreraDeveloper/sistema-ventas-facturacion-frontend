@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiAbrir, apiCrear, apiListar, cantidad, cargarSesion, dinero, fecha, hoy, texto } from '../api/client'
+import { confirmar } from '../components/Confirmacion'
 import type { CreditoDisponible, CreditoLinea, MotivoCredito, NotaCredito, NotaCreditoOpciones, Venta } from '../api/types'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { CuadroTotales, sumarTotales, totalesDe } from '../components/Totales'
@@ -314,10 +315,16 @@ export function NuevaNotaCredito({
     }
     const punto = opciones?.puntos.find((item) => String(item.puntoExpedicionId) === puntoId)
     const aviso = reintegro > 0 ? ` Sale de la caja Gs. ${dinero(reintegro)} para devolver al cliente.` : ''
-    if (!window.confirm(`¿Emitir la nota de crédito ${punto?.proximoComprobante ?? ''} por Gs. ${dinero(totales.total)}?${aviso}`)) {
+    const form = event.currentTarget
+    if (
+      !(await confirmar({
+        titulo: 'Emitir nota de crédito',
+        mensaje: `¿Emitir la nota de crédito ${punto?.proximoComprobante ?? ''} por Gs. ${dinero(totales.total)}?${aviso}`,
+        aceptar: 'Emitir nota de crédito',
+      }))
+    ) {
       return
     }
-    const form = event.currentTarget
     setGuardando(true)
     try {
       onGuardada(
@@ -511,7 +518,14 @@ export function DetalleNotaCredito({
     ]
       .filter(Boolean)
       .join(', ')
-    if (!window.confirm(`¿Anular la nota de crédito ${nota.numeroComprobante}? ${detalle ? `Al anularla ${detalle}.` : ''} El número queda usado.`)) {
+    if (
+      !(await confirmar({
+        titulo: 'Anular nota de crédito',
+        mensaje: `¿Anular la nota de crédito ${nota.numeroComprobante}? ${detalle ? `Al anularla ${detalle}.` : ''} El número queda usado.`,
+        aceptar: 'Anular nota de crédito',
+        peligro: true,
+      }))
+    ) {
       return
     }
     setAnulando(true)

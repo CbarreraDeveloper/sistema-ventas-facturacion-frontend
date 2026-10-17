@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiAbrir, apiCrear, apiListar, cantidad, cargarSesion, dinero, fecha, hoy, texto } from '../api/client'
+import { confirmar } from '../components/Confirmacion'
 import type {
   EntregaPendiente,
   EstadoCuenta,
@@ -21,6 +22,7 @@ import { CuadroTotales, totalesDe } from '../components/Totales'
 import { Aviso, Barra, Campo, Dialogo, textoOpcional } from '../components/ui'
 import { DetalleNotaCredito, NuevaNotaCredito } from './NotasCreditoPage'
 import { DetalleRemision, NuevaRemision } from './RemisionesPage'
+import { FichaTercero } from './TercerosPage'
 
 export function VentasPage() {
   const [ventas, setVentas] = useState<Venta[]>([])
@@ -154,6 +156,7 @@ export function NuevaVenta({
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [cuenta, setCuenta] = useState<EstadoCuenta | null>(null)
+  const [altaCliente, setAltaCliente] = useState(false)
   const renglones = useRenglones()
   const totales = renglones.totales
   const cobro = useCobro(totales.total, opciones?.medios ?? [])
@@ -219,6 +222,17 @@ export function NuevaVenta({
     }
   }, [clienteId])
 
+  function clienteCreado(nuevo: Tercero) {
+    setClientes((actuales) =>
+      [...actuales.filter((item) => item.id !== nuevo.id), nuevo].sort((a, b) =>
+        a.razonSocial.localeCompare(b.razonSocial, 'es'),
+      ),
+    )
+    setClienteTexto(etiquetaCliente(nuevo))
+    setAltaCliente(false)
+    setError(null)
+  }
+
   function cambiarLista(codigo: string) {
     setLista(codigo)
     renglones.repreciar(codigo)
@@ -256,9 +270,11 @@ export function NuevaVenta({
     }
     const punto = opciones?.puntos.find((item) => String(item.puntoExpedicionId) === puntoId)
     if (
-      !window.confirm(
-        `¿Emitir la factura ${punto?.proximoComprobante ?? ''} por Gs. ${dinero(totales.total)} a ${cliente?.razonSocial ?? SIN_NOMBRE}?`,
-      )
+      !(await confirmar({
+        titulo: 'Emitir factura',
+        mensaje: `¿Emitir la factura ${punto?.proximoComprobante ?? ''} por Gs. ${dinero(totales.total)} a ${cliente?.razonSocial ?? SIN_NOMBRE}?`,
+        aceptar: 'Emitir factura',
+      }))
     ) {
       return
     }
@@ -322,14 +338,19 @@ export function NuevaVenta({
           <Campo etiqueta="Fecha">
             <input name="fecha" type="date" required defaultValue={hoy()} max={hoy()} />
           </Campo>
-          <Campo etiqueta="Cliente">
-            <input
-              list="clientes-venta"
-              value={clienteTexto}
-              onChange={(event) => setClienteTexto(event.target.value)}
-              placeholder="Vacío = SIN NOMBRE"
-            />
-          </Campo>
+          <div className="campo-con-accion">
+            <Campo etiqueta="Cliente">
+              <input
+                list="clientes-venta"
+                value={clienteTexto}
+                onChange={(event) => setClienteTexto(event.target.value)}
+                placeholder="Vacío = SIN NOMBRE"
+              />
+            </Campo>
+            <button type="button" className="btn" title="Registrar un cliente nuevo" onClick={() => setAltaCliente(true)}>
+              Nuevo
+            </button>
+          </div>
           <datalist id="clientes-venta">
             <option value={SIN_NOMBRE} />
             {clientes.map((item) => (
@@ -415,6 +436,9 @@ export function NuevaVenta({
           </div>
         </div>
       </form>
+      {altaCliente ? (
+        <FichaTercero rol="cliente" tercero={null} onCerrar={() => setAltaCliente(false)} onGuardado={clienteCreado} />
+      ) : null}
     </Dialogo>
   )
 }
@@ -490,9 +514,12 @@ export function DetalleVenta({
 
   async function anular() {
     if (
-      !window.confirm(
-        `¿Anular la factura ${venta.numeroComprobante}? El stock vuelve al depósito, lo cobrado sale de la caja como egreso y el número queda usado. Recordá anular también el talonario físico.`,
-      )
+      !(await confirmar({
+        titulo: 'Anular factura',
+        mensaje: `¿Anular la factura ${venta.numeroComprobante}? El stock vuelve al depósito, lo cobrado sale de la caja como egreso y el número queda usado. Recordá anular también el talonario físico.`,
+        aceptar: 'Anular factura',
+        peligro: true,
+      }))
     ) {
       return
     }

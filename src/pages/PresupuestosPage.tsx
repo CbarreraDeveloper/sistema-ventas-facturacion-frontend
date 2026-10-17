@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiAbrir, apiActualizar, apiCrear, apiListar, cantidad, dinero, fecha, hoy, texto } from '../api/client'
+import { confirmar } from '../components/Confirmacion'
 import type { EstadoPresupuesto, Material, Obra, Presupuesto, Tercero, Venta, VentaOpciones } from '../api/types'
 import { etiquetaCliente } from '../components/etiquetas'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
@@ -429,7 +430,14 @@ function DetallePresupuesto({
   }
 
   async function anular() {
-    if (!window.confirm(`¿Anular el presupuesto ${presupuesto.numero}?`)) {
+    if (
+      !(await confirmar({
+        titulo: 'Anular presupuesto',
+        mensaje: `¿Anular el presupuesto ${presupuesto.numero}?`,
+        aceptar: 'Anular presupuesto',
+        peligro: true,
+      }))
+    ) {
       return
     }
     setAnulando(true)
@@ -442,10 +450,14 @@ function DetallePresupuesto({
     }
   }
 
-  function facturar() {
+  async function facturar() {
     if (
       presupuesto.estado === 'VENCIDO'
-      && !window.confirm(`El presupuesto venció el ${fecha(presupuesto.validoHasta)}. Revisá los precios antes de emitir. ¿Continuar?`)
+      && !(await confirmar({
+        titulo: 'Presupuesto vencido',
+        mensaje: `El presupuesto venció el ${fecha(presupuesto.validoHasta)}. Revisá los precios antes de emitir. ¿Continuar?`,
+        aceptar: 'Continuar',
+      }))
     ) {
       return
     }
@@ -537,7 +549,7 @@ function DetallePresupuesto({
           Imprimir PDF
         </button>
         {abierto(presupuesto) ? (
-          <button type="button" className="btn primary" onClick={facturar}>
+          <button type="button" className="btn primary" onClick={() => void facturar()}>
             Facturar
           </button>
         ) : (

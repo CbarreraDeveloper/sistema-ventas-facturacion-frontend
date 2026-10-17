@@ -34,6 +34,9 @@ export function guardarSesion(sesion: Sesion) {
 
 export function cerrarSesion() {
   sessionStorage.removeItem(STORAGE_KEY)
+  if (window.location.hash !== '#/') {
+    window.location.replace('#/')
+  }
   window.dispatchEvent(new Event(AUTH_EVENT))
 }
 

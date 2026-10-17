@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiCrear, apiListar, texto } from '../api/client'
+import { apiActualizar, apiCrear, apiEliminar, apiListar, dinero, texto } from '../api/client'
 import type { Obra, Tercero } from '../api/types'
+import { confirmar } from '../components/Confirmacion'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
-import { Aviso, Barra, Campo, Dialogo, valorInput } from '../components/ui'
+import { Aviso, Barra, Campo, Dialogo, Monto, numeroOpcional, valorInput } from '../components/ui'
 
 function documento(tercero: Tercero): string {
   if (!tercero.documento) {
@@ -25,8 +26,10 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
   const [error, setError] = useState<string | null>(null)
   const [listo, setListo] = useState(false)
   const [creando, setCreando] = useState(false)
+  const [editando, setEditando] = useState<Tercero | null>(null)
   const [seleccionado, setSeleccionado] = useState<Tercero | null>(null)
   const [obras, setObras] = useState<Obra[]>([])
+  const [obraEditando, setObraEditando] = useState<Obra | null>(null)
 
   async function cargar() {
     try {
@@ -45,6 +48,7 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
 
   async function elegir(tercero: Tercero) {
     setSeleccionado(tercero)
+    setObraEditando(null)
     if (rol !== 'cliente') {
       return
     }
@@ -55,44 +59,54 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
     }
   }
 
-  async function guardar(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const form = event.currentTarget
-    try {
-      await apiCrear('/terceros', {
-        razonSocial: valorInput(form, 'razonSocial'),
-        tipoPersona: valorInput(form, 'tipoPersona'),
-        documento: valorCampo(form, 'documento'),
-        telefono: valorCampo(form, 'telefono'),
-        celular: valorCampo(form, 'celular'),
-        email: valorCampo(form, 'email'),
-        direccion: valorInput(form, 'direccion'),
-        esCliente: rol === 'cliente',
-        esProveedor: rol === 'proveedor',
-      })
-      setCreando(false)
-      await cargar()
-    } catch (causa) {
-      setError(causa instanceof Error ? causa.message : 'No se pudo guardar')
-    }
-  }
-
   async function guardarObra(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!seleccionado) {
       return
     }
     const form = event.currentTarget
+    const cuerpo = {
+      nombre: valorInput(form, 'nombre'),
+      direccion: valorInput(form, 'direccionObra'),
+      ciudad: valorInput(form, 'ciudad'),
+    }
     try {
-      await apiCrear(`/terceros/${seleccionado.id}/obras`, {
-        nombre: valorInput(form, 'nombre'),
-        direccion: valorInput(form, 'direccionObra'),
-        ciudad: valorInput(form, 'ciudad'),
-      })
+      if (obraEditando) {
+        await apiActualizar(`/terceros/${seleccionado.id}/obras/${obraEditando.id}`, cuerpo)
+      } else {
+        await apiCrear(`/terceros/${seleccionado.id}/obras`, cuerpo)
+      }
       form.reset()
+      setObraEditando(null)
+      setError(null)
       setObras(await apiListar<Obra[]>(`/terceros/${seleccionado.id}/obras`))
     } catch (causa) {
       setError(causa instanceof Error ? causa.message : 'No se pudo guardar la obra')
+    }
+  }
+
+  async function quitarObra(obra: Obra) {
+    if (!seleccionado) {
+      return
+    }
+    const confirmado = await confirmar({
+      titulo: 'Quitar obra',
+      mensaje: `¿Quitar la obra ${obra.nombre} de ${seleccionado.razonSocial}? Los comprobantes ya emitidos conservan la obra; solo deja de ofrecerse en los nuevos.`,
+      aceptar: 'Quitar obra',
+      peligro: true,
+    })
+    if (!confirmado) {
+      return
+    }
+    try {
+      await apiEliminar(`/terceros/${seleccionado.id}/obras/${obra.id}`)
+      if (obraEditando?.id === obra.id) {
+        setObraEditando(null)
+      }
+      setError(null)
+      setObras(await apiListar<Obra[]>(`/terceros/${seleccionado.id}/obras`))
+    } catch (causa) {
+      setError(causa instanceof Error ? causa.message : 'No se pudo quitar la obra')
     }
   }
 
@@ -114,6 +128,8 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
               <th>Documento</th>
               <th>Teléfono</th>
               <th>Correo</th>
+              {rol === 'cliente' ? <th className="numero">Límite de crédito</th> : null}
+              <th className="numero">Plazo</th>
               <th />
             </tr>
           </thead>
@@ -124,7 +140,14 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
                 <td className="numero">{documento(tercero)}</td>
                 <td>{texto(tercero.celular || tercero.telefono)}</td>
                 <td>{texto(tercero.email)}</td>
+                {rol === 'cliente' ? (
+                  <td className="numero">{tercero.limiteCredito ? dinero(tercero.limiteCredito) : '—'}</td>
+                ) : null}
+                <td className="numero">{tercero.plazoDias ? `${tercero.plazoDias} días` : '—'}</td>
                 <td className="acciones">
+                  <button type="button" className="btn ghost" onClick={() => setEditando(tercero)}>
+                    Editar
+                  </button>
                   {rol === 'cliente' ? (
                     <button type="button" className="btn ghost" onClick={() => void elegir(tercero)}>
                       Obras
@@ -141,66 +164,201 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
       {seleccionado && rol === 'cliente' ? (
         <section className="obras">
           <h3>Obras de {seleccionado.razonSocial}</h3>
-          {obras.length === 0 ? <p className="vacio">Todavía no tiene obras.</p> : null}
-          <ul className="sugerencias">
-            {obras.map((obra) => (
-              <li key={obra.id}>
-                {obra.nombre}
-                {obra.ciudad ? ` · ${obra.ciudad}` : ''}
-                {obra.direccion ? ` · ${obra.direccion}` : ''}
-              </li>
-            ))}
-          </ul>
-          <form className="grilla" onSubmit={(event) => void guardarObra(event)}>
-            <Campo etiqueta="Nueva obra">
-              <input name="nombre" required placeholder="Obra o local" />
+          {obras.length === 0 ? (
+            <p className="vacio">Todavía no tiene obras.</p>
+          ) : (
+            <div className="tabla-contenedor bloque">
+              <table className="tabla">
+                <thead>
+                  <tr>
+                    <th>Obra</th>
+                    <th>Ciudad</th>
+                    <th>Dirección</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {obras.map((obra) => (
+                    <tr key={obra.id}>
+                      <td>{obra.nombre}</td>
+                      <td>{texto(obra.ciudad)}</td>
+                      <td>{texto(obra.direccion)}</td>
+                      <td className="acciones">
+                        <button type="button" className="btn ghost" onClick={() => setObraEditando(obra)}>
+                          Editar
+                        </button>
+                        <button type="button" className="btn ghost" onClick={() => void quitarObra(obra)}>
+                          Quitar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <form
+            key={obraEditando?.id ?? 'nueva'}
+            className="grilla bloque"
+            onSubmit={(event) => void guardarObra(event)}
+          >
+            <Campo etiqueta={obraEditando ? `Editar obra ${obraEditando.nombre}` : 'Nueva obra'}>
+              <input name="nombre" required placeholder="Obra o local" defaultValue={obraEditando?.nombre ?? ''} autoFocus={obraEditando != null} />
             </Campo>
             <Campo etiqueta="Ciudad">
-              <input name="ciudad" />
+              <input name="ciudad" defaultValue={obraEditando?.ciudad ?? ''} />
             </Campo>
             <Campo etiqueta="Dirección">
-              <input name="direccionObra" />
+              <input name="direccionObra" defaultValue={obraEditando?.direccion ?? ''} />
             </Campo>
             <div className="dialogo-acciones">
-              <button className="btn primary" type="submit">Agregar obra</button>
+              {obraEditando ? (
+                <button className="btn" type="button" onClick={() => setObraEditando(null)}>
+                  Cancelar
+                </button>
+              ) : null}
+              <button className="btn primary" type="submit">
+                {obraEditando ? 'Guardar cambios' : 'Agregar obra'}
+              </button>
             </div>
           </form>
         </section>
       ) : null}
-      {creando ? (
-        <Dialogo titulo={rol === 'cliente' ? 'Nuevo cliente' : 'Nuevo proveedor'} onCerrar={() => setCreando(false)}>
-          <form className="grilla" onSubmit={(event) => void guardar(event)}>
-            <Campo etiqueta="Razón social">
-              <input name="razonSocial" required />
-            </Campo>
-            <Campo etiqueta="Tipo">
-              <select name="tipoPersona" defaultValue="JURIDICA">
-                <option value="JURIDICA">Jurídica</option>
-                <option value="FISICA">Física</option>
-              </select>
-            </Campo>
-            <Campo etiqueta="RUC o cédula">
-              <input name="documento" placeholder="80000000-1" />
-            </Campo>
-            <Campo etiqueta="Teléfono">
-              <input name="telefono" />
-            </Campo>
-            <Campo etiqueta="Celular">
-              <input name="celular" />
-            </Campo>
-            <Campo etiqueta="Correo">
-              <input name="email" type="email" />
-            </Campo>
-            <Campo etiqueta="Dirección">
-              <input name="direccion" />
-            </Campo>
-            <div className="dialogo-acciones">
-              <button className="btn primary" type="submit">Guardar</button>
-            </div>
-          </form>
-        </Dialogo>
+      {creando || editando ? (
+        <FichaTercero
+          rol={rol}
+          tercero={editando}
+          onCerrar={() => {
+            setCreando(false)
+            setEditando(null)
+          }}
+          onGuardado={(guardado) => {
+            setCreando(false)
+            setEditando(null)
+            if (seleccionado?.id === guardado.id) {
+              setSeleccionado(guardado)
+            }
+            void cargar()
+          }}
+        />
       ) : null}
     </section>
+  )
+}
+
+export function FichaTercero({
+  rol,
+  tercero,
+  onCerrar,
+  onGuardado,
+}: {
+  rol: 'cliente' | 'proveedor'
+  tercero: Tercero | null
+  onCerrar: () => void
+  onGuardado: (tercero: Tercero) => void
+}) {
+  const [error, setError] = useState<string | null>(null)
+  const [guardando, setGuardando] = useState(false)
+  const esCliente = tercero ? tercero.esCliente : rol === 'cliente'
+  const esProveedor = tercero ? tercero.esProveedor : rol === 'proveedor'
+  const otroRol = rol === 'cliente' ? 'proveedor' : 'cliente'
+
+  async function guardar(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const otro = (form.elements.namedItem('otroRol') as HTMLInputElement).checked
+    const cuerpo = {
+      razonSocial: valorInput(form, 'razonSocial'),
+      tipoPersona: valorInput(form, 'tipoPersona'),
+      documento: valorCampo(form, 'documento'),
+      telefono: valorCampo(form, 'telefono'),
+      celular: valorCampo(form, 'celular'),
+      email: valorCampo(form, 'email'),
+      direccion: valorInput(form, 'direccion'),
+      esCliente: rol === 'cliente' || otro,
+      esProveedor: rol === 'proveedor' || otro,
+      limiteCredito: numeroOpcional(valorCampo(form, 'limiteCredito')),
+      plazoDias: numeroOpcional(valorCampo(form, 'plazoDias')),
+    }
+    setGuardando(true)
+    try {
+      onGuardado(
+        tercero
+          ? await apiActualizar<Tercero>(`/terceros/${tercero.id}`, cuerpo)
+          : await apiCrear<Tercero>('/terceros', cuerpo),
+      )
+    } catch (causa) {
+      setError(causa instanceof Error ? causa.message : 'No se pudo guardar')
+      setGuardando(false)
+    }
+  }
+
+  const titulo = tercero
+    ? `Editar ${tercero.razonSocial}`
+    : rol === 'cliente' ? 'Nuevo cliente' : 'Nuevo proveedor'
+
+  return (
+    <Dialogo titulo={titulo} onCerrar={onCerrar}>
+      <form className="grilla" onSubmit={(event) => void guardar(event)}>
+        <div className="span">
+          <Aviso mensaje={error} />
+        </div>
+        <Campo etiqueta="Razón social">
+          <input name="razonSocial" required defaultValue={tercero?.razonSocial ?? ''} />
+        </Campo>
+        <Campo etiqueta="Tipo">
+          <select name="tipoPersona" defaultValue={tercero?.tipoPersona ?? 'JURIDICA'}>
+            <option value="JURIDICA">Jurídica</option>
+            <option value="FISICA">Física</option>
+          </select>
+        </Campo>
+        <Campo etiqueta="RUC o cédula">
+          <input name="documento" placeholder="80000000-1" defaultValue={tercero?.documento ? documento(tercero) : ''} />
+        </Campo>
+        <Campo etiqueta="Teléfono">
+          <input name="telefono" defaultValue={tercero?.telefono ?? ''} />
+        </Campo>
+        <Campo etiqueta="Celular">
+          <input name="celular" defaultValue={tercero?.celular ?? ''} />
+        </Campo>
+        <Campo etiqueta="Correo">
+          <input name="email" type="email" defaultValue={tercero?.email ?? ''} />
+        </Campo>
+        <Campo etiqueta="Dirección">
+          <input name="direccion" defaultValue={tercero?.direccion ?? ''} />
+        </Campo>
+        {esCliente ? (
+          <Campo etiqueta="Límite de crédito (vacío = sin límite)">
+            <Monto name="limiteCredito" valor={tercero?.limiteCredito} decimales={0} />
+          </Campo>
+        ) : null}
+        <Campo etiqueta="Plazo habitual de crédito (días)">
+          <input
+            name="plazoDias"
+            type="number"
+            min={0}
+            max={365}
+            defaultValue={tercero?.plazoDias ?? ''}
+          />
+        </Campo>
+        <label className="check linea">
+          <input
+            name="otroRol"
+            type="checkbox"
+            defaultChecked={rol === 'cliente' ? esProveedor : esCliente}
+          />
+          También es {otroRol}
+        </label>
+        <div className="dialogo-acciones">
+          <button className="btn" type="button" onClick={onCerrar}>
+            Cancelar
+          </button>
+          <button className="btn primary" type="submit" disabled={guardando}>
+            Guardar
+          </button>
+        </div>
+      </form>
+    </Dialogo>
   )
 }
 

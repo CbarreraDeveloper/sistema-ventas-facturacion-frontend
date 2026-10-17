@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { apiAbrir, apiCrear, apiListar, cargarSesion, dinero, fecha, texto } from '../api/client'
 import type { CajaSesion, EstadoCuenta, OpcionCatalogo, Recibo, SaldoCliente, Tercero } from '../api/types'
 import { SeccionCobro, useCobro } from '../components/Cobro'
+import { confirmar } from '../components/Confirmacion'
 import { etiquetaCliente } from '../components/etiquetas'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { Aviso, Barra, Campo, Dialogo, mascaraMonto, numeroOpcional, textoOpcional } from '../components/ui'
@@ -455,10 +456,17 @@ function NuevoRecibo({
       setError(problema)
       return
     }
-    if (!window.confirm(`¿Emitir recibo por Gs. ${dinero(total)} a ${cuenta.cliente}?`)) {
+    const form = event.currentTarget
+    if (
+      !(await confirmar({
+        titulo: 'Emitir recibo',
+        mensaje: `¿Emitir recibo por Gs. ${dinero(total)} a ${cuenta.cliente}?`,
+        aceptar: 'Emitir recibo',
+      }))
+    ) {
       return
     }
-    const observacion = (event.currentTarget.elements.namedItem('observacion') as HTMLTextAreaElement).value.trim()
+    const observacion = (form.elements.namedItem('observacion') as HTMLTextAreaElement).value.trim()
     setGuardando(true)
     try {
       onGuardado(
@@ -595,7 +603,14 @@ function DetalleRecibo({
   }
 
   async function anular() {
-    if (!window.confirm(`¿Anular el recibo ${recibo.numero}? Las facturas vuelven a quedar pendientes y el dinero sale de la caja como egreso.`)) {
+    if (
+      !(await confirmar({
+        titulo: 'Anular recibo',
+        mensaje: `¿Anular el recibo ${recibo.numero}? Las facturas vuelven a quedar pendientes y el dinero sale de la caja como egreso.`,
+        aceptar: 'Anular recibo',
+        peligro: true,
+      }))
+    ) {
       return
     }
     setAnulando(true)
