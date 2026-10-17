@@ -30,6 +30,7 @@ export function VentasPage() {
   const [listo, setListo] = useState(false)
   const [creando, setCreando] = useState(false)
   const [viendo, setViendo] = useState<Venta | null>(null)
+  const [busqueda, setBusqueda] = useState('')
 
   async function cargar() {
     try {
@@ -62,11 +63,27 @@ export function VentasPage() {
     }
   }
 
-  const paginacion = usePaginacion(ventas)
+  const consulta = busqueda.trim().toLocaleUpperCase('es-PY')
+  const filtradas = consulta
+    ? ventas.filter((venta) =>
+        [venta.numeroComprobante, venta.cliente, venta.clienteDocumento, venta.obra, venta.presupuestoNumero, fecha(venta.fecha)].some(
+          (valor) => (valor ?? '').toLocaleUpperCase('es-PY').includes(consulta),
+        ),
+      )
+    : ventas
+  const paginacion = usePaginacion(filtradas)
 
   return (
     <section>
       <Barra kicker="Comercial" titulo="Ventas" detalle="Facturas emitidas. Al confirmar descuentan stock del depósito principal.">
+        <label className="campo busqueda">
+          <span>Buscar</span>
+          <input
+            value={busqueda}
+            onChange={(event) => setBusqueda(event.target.value)}
+            placeholder="Factura, cliente, RUC, obra o fecha"
+          />
+        </label>
         <button type="button" className="btn primary" onClick={() => setCreando(true)}>
           Nueva factura
         </button>
@@ -111,6 +128,9 @@ export function VentasPage() {
       </div>
       <ControlPaginacion paginacion={paginacion} />
       {listo && ventas.length === 0 ? <p className="vacio">Todavía no hay facturas emitidas.</p> : null}
+      {listo && ventas.length > 0 && filtradas.length === 0 ? (
+        <p className="vacio">Ninguna factura coincide con la búsqueda.</p>
+      ) : null}
       {creando ? (
         <NuevaVenta
           onCerrar={() => setCreando(false)}

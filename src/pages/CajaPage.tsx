@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiCrear, apiListar, cargarSesion, dinero, fechaHora, texto } from '../api/client'
+import { apiCrear, apiListar, cargarSesion, dinero, fecha, fechaHora, hoy, texto } from '../api/client'
 import { confirmar } from '../components/Confirmacion'
 import type { CajaSesion, OpcionCatalogo, TipoMovimientoCaja } from '../api/types'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
@@ -15,6 +15,7 @@ export function CajaPage() {
   const [movimiento, setMovimiento] = useState<TipoMovimientoCaja | null>(null)
   const [cerrando, setCerrando] = useState<CajaSesion | null>(null)
   const [viendo, setViendo] = useState<CajaSesion | null>(null)
+  const [diaApertura, setDiaApertura] = useState('')
   const esAdmin = cargarSesion()?.roles.includes('ADMIN') ?? false
 
   async function cargar() {
@@ -47,7 +48,8 @@ export function CajaPage() {
     }
   }
 
-  const paginacion = usePaginacion(sesiones)
+  const filtradas = diaApertura ? sesiones.filter((sesion) => sesion.abiertaEn.slice(0, 10) === diaApertura) : sesiones
+  const paginacion = usePaginacion(filtradas)
 
   return (
     <section>
@@ -75,6 +77,17 @@ export function CajaPage() {
           <div>
             <h3>Cajas anteriores</h3>
             <p>Historial de aperturas y cierres con la diferencia del arqueo.</p>
+          </div>
+          <div className="periodo">
+            <label className="campo compacto">
+              <span>Fecha de apertura</span>
+              <input type="date" value={diaApertura} max={hoy()} onChange={(event) => setDiaApertura(event.target.value)} />
+            </label>
+            {diaApertura ? (
+              <button type="button" className="btn ghost" onClick={() => setDiaApertura('')}>
+                Ver todas
+              </button>
+            ) : null}
           </div>
         </div>
         <div className="tabla-contenedor">
@@ -122,6 +135,9 @@ export function CajaPage() {
         </div>
         <ControlPaginacion paginacion={paginacion} />
         {listo && sesiones.length === 0 ? <p className="vacio">Todavía no se abrió ninguna caja.</p> : null}
+        {listo && sesiones.length > 0 && filtradas.length === 0 ? (
+          <p className="vacio">No hay cajas abiertas el {fecha(diaApertura)}.</p>
+        ) : null}
       </div>
 
       {movimiento && actual ? (
