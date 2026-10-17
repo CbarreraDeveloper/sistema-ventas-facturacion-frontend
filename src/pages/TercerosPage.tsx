@@ -30,6 +30,7 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
   const [seleccionado, setSeleccionado] = useState<Tercero | null>(null)
   const [obras, setObras] = useState<Obra[]>([])
   const [obraEditando, setObraEditando] = useState<Obra | null>(null)
+  const [busqueda, setBusqueda] = useState('')
 
   async function cargar() {
     try {
@@ -110,11 +111,27 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
     }
   }
 
-  const paginacion = usePaginacion(terceros)
+  const consulta = busqueda.trim().toLocaleUpperCase('es-PY')
+  const filtrados = consulta
+    ? terceros.filter((tercero) =>
+        [tercero.razonSocial, documento(tercero), tercero.telefono, tercero.celular, tercero.email].some((valor) =>
+          (valor ?? '').toLocaleUpperCase('es-PY').includes(consulta),
+        ),
+      )
+    : terceros
+  const paginacion = usePaginacion(filtrados)
 
   return (
     <section>
       <Barra titulo={titulo} detalle={detalle}>
+        <label className="campo busqueda">
+          <span>Buscar</span>
+          <input
+            value={busqueda}
+            onChange={(event) => setBusqueda(event.target.value)}
+            placeholder="Nombre, RUC, teléfono o correo"
+          />
+        </label>
         <button type="button" className="btn primary" onClick={() => setCreando(true)}>
           {rol === 'cliente' ? 'Nuevo cliente' : 'Nuevo proveedor'}
         </button>
@@ -161,6 +178,9 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
       </div>
       <ControlPaginacion paginacion={paginacion} />
       {listo && terceros.length === 0 ? <p className="vacio">No hay registros para mostrar.</p> : null}
+      {listo && terceros.length > 0 && filtrados.length === 0 ? (
+        <p className="vacio">Ningún registro coincide con la búsqueda.</p>
+      ) : null}
       {seleccionado && rol === 'cliente' ? (
         <section className="obras">
           <h3>Obras de {seleccionado.razonSocial}</h3>

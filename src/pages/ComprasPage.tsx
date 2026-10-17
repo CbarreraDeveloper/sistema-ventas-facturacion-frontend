@@ -22,6 +22,7 @@ export function ComprasPage() {
   const [listo, setListo] = useState(false)
   const [creando, setCreando] = useState(false)
   const [viendo, setViendo] = useState<Compra | null>(null)
+  const [busqueda, setBusqueda] = useState('')
 
   async function cargar() {
     try {
@@ -46,11 +47,27 @@ export function ComprasPage() {
     }
   }
 
-  const paginacion = usePaginacion(compras)
+  const consulta = busqueda.trim().toLocaleUpperCase('es-PY')
+  const filtradas = consulta
+    ? compras.filter((compra) =>
+        [compra.numeroComprobante, compra.proveedor, compra.proveedorDocumento, compra.timbradoNumero, fecha(compra.fecha)].some(
+          (valor) => (valor ?? '').toLocaleUpperCase('es-PY').includes(consulta),
+        ),
+      )
+    : compras
+  const paginacion = usePaginacion(filtradas)
 
   return (
     <section>
       <Barra kicker="Abastecimiento" titulo="Compras" detalle="Facturas de proveedores. Al confirmar suman stock al depósito principal.">
+        <label className="campo busqueda">
+          <span>Buscar</span>
+          <input
+            value={busqueda}
+            onChange={(event) => setBusqueda(event.target.value)}
+            placeholder="Factura, proveedor, RUC o fecha"
+          />
+        </label>
         <button type="button" className="btn primary" onClick={() => setCreando(true)}>
           Nueva compra
         </button>
@@ -96,6 +113,9 @@ export function ComprasPage() {
       </div>
       <ControlPaginacion paginacion={paginacion} />
       {listo && compras.length === 0 ? <p className="vacio">Todavía no hay compras cargadas.</p> : null}
+      {listo && compras.length > 0 && filtradas.length === 0 ? (
+        <p className="vacio">Ninguna compra coincide con la búsqueda.</p>
+      ) : null}
       {creando ? (
         <NuevaCompra
           onCerrar={() => setCreando(false)}
