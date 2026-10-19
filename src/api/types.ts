@@ -417,6 +417,14 @@ export type Resumen = {
   clientes: number
 }
 
+export type MasVendido = {
+  codigo: string
+  descripcion: string
+  unidad: string | null
+  cantidad: number
+  importe: number
+}
+
 export type ReporteVentas = {
   desde: string
   hasta: string
