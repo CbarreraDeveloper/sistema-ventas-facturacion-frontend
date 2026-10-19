@@ -142,16 +142,18 @@ function precio(valor: number | null): string {
   return valor == null ? '—' : dinero(valor)
 }
 
-function FormularioMaterial({
+export function FormularioMaterial({
   material,
   opciones,
+  enCompra = false,
   onCerrar,
   onGuardado,
 }: {
   material: Material | null
   opciones: OpcionesMaterial
+  enCompra?: boolean
   onCerrar: () => void
-  onGuardado: () => void
+  onGuardado: (material: Material) => void
 }) {
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
@@ -185,16 +187,16 @@ function FormularioMaterial({
       precioEspecial,
       controlaStock: controla,
       activo: material ? marcado(form, 'activo') : true,
-      existenciaInicial: material || !controla ? null : numeroOpcional(valorInput(form, 'existenciaInicial')) ?? 0,
+      existenciaInicial:
+        material || !controla ? null : enCompra ? 0 : numeroOpcional(valorInput(form, 'existenciaInicial')) ?? 0,
     }
     setGuardando(true)
     try {
-      if (material) {
-        await apiActualizar(`/productos/${material.id}`, cuerpo)
-      } else {
-        await apiCrear('/productos', cuerpo)
-      }
-      onGuardado()
+      onGuardado(
+        material
+          ? await apiActualizar<Material>(`/productos/${material.id}`, cuerpo)
+          : await apiCrear<Material>('/productos', cuerpo),
+      )
     } catch (causa) {
       setError(causa instanceof Error ? causa.message : 'No se pudo guardar el material')
       setGuardando(false)
@@ -258,7 +260,10 @@ function FormularioMaterial({
         <Campo etiqueta="Especial">
           <Monto name="precioEspecial" valor={material?.precioEspecial} />
         </Campo>
-        {!material && controla ? (
+        {enCompra && controla ? (
+          <p className="ayuda span">La existencia entra con la cantidad que cargues en la compra.</p>
+        ) : null}
+        {!material && !enCompra && controla ? (
           <Campo etiqueta="Existencia inicial">
             <Monto name="existenciaInicial" decimales={3} />
           </Campo>

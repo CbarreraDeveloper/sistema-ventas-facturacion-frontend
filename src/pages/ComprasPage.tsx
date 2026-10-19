@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiCrear, apiListar, cantidad, dinero, fecha, hoy, texto } from '../api/client'
 import { confirmar } from '../components/Confirmacion'
-import type { CajaSesion, Compra, Material, OpcionCatalogo, Tercero } from '../api/types'
+import type { CajaSesion, Compra, Material, OpcionCatalogo, OpcionesMaterial, Tercero } from '../api/types'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { CuadroTotales, sumarTotales, totalesDe } from '../components/Totales'
 import type { Totales } from '../components/Totales'
 import { Aviso, Barra, Campo, Dialogo, mascaraMonto, numeroOpcional, textoOpcional, valorInput } from '../components/ui'
+import { FormularioMaterial } from './MaterialesPage'
 import { FichaTercero } from './TercerosPage'
 
 type Linea = {
@@ -165,6 +166,8 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
   const [proveedorId, setProveedorId] = useState('')
   const [plazo, setPlazo] = useState('')
   const [altaProveedor, setAltaProveedor] = useState(false)
+  const [altaMaterial, setAltaMaterial] = useState(false)
+  const [opcionesMaterial, setOpcionesMaterial] = useState<OpcionesMaterial | null>(null)
   const [medios, setMedios] = useState<OpcionCatalogo[]>([])
   const [medioId, setMedioId] = useState('')
   const [caja, setCaja] = useState<CajaSesion | null | undefined>(undefined)
@@ -202,7 +205,18 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
         setMedioId(efectivo ? String(efectivo.id) : '')
       })
       .catch((causa: unknown) => setError(causa instanceof Error ? causa.message : 'No se pudieron leer los datos'))
+    apiListar<OpcionesMaterial>('/productos/opciones')
+      .then(setOpcionesMaterial)
+      .catch(() => undefined)
   }, [])
+
+  function agregarLinea(material: Material) {
+    setLineas((actuales) => [
+      ...actuales,
+      { clave: siguiente, material, cantidad: '1', precio: mascaraMonto(String(Math.round(material.costo))) },
+    ])
+    setSiguiente((valorActual) => valorActual + 1)
+  }
 
   function elegir(valor: string) {
     setBuscar(valor)
@@ -210,12 +224,17 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
     if (!material) {
       return
     }
-    setLineas((actuales) => [
-      ...actuales,
-      { clave: siguiente, material, cantidad: '1', precio: mascaraMonto(String(Math.round(material.costo))) },
-    ])
-    setSiguiente((valorActual) => valorActual + 1)
+    agregarLinea(material)
     setBuscar('')
+  }
+
+  function materialCreado(material: Material) {
+    setMateriales((actuales) =>
+      [...actuales.filter((item) => item.id !== material.id), material].sort((a, b) => a.codigo.localeCompare(b.codigo, 'es')),
+    )
+    agregarLinea(material)
+    setAltaMaterial(false)
+    setError(null)
   }
 
   function cambiar(clave: number, campo: 'cantidad' | 'precio', valor: string) {
@@ -366,14 +385,25 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
         </div>
         <div className="grilla bloque">
           <div className="span">
-            <Campo etiqueta="Agregar material">
-              <input
-                list="materiales-compra"
-                value={buscar}
-                onChange={(event) => elegir(event.target.value)}
-                placeholder="Escribí código o descripción y elegí de la lista"
-              />
-            </Campo>
+            <div className="campo-con-accion">
+              <Campo etiqueta="Agregar material">
+                <input
+                  list="materiales-compra"
+                  value={buscar}
+                  onChange={(event) => elegir(event.target.value)}
+                  placeholder="Escribí código o descripción y elegí de la lista"
+                />
+              </Campo>
+              <button
+                type="button"
+                className="btn"
+                title="Registrar un material nuevo"
+                onClick={() => setAltaMaterial(true)}
+                disabled={!opcionesMaterial}
+              >
+                Nuevo
+              </button>
+            </div>
             <datalist id="materiales-compra">
               {materiales.map((material) => (
                 <option key={material.id} value={etiquetaMaterial(material)} />
@@ -449,6 +479,15 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
       </form>
       {altaProveedor ? (
         <FichaTercero rol="proveedor" tercero={null} onCerrar={() => setAltaProveedor(false)} onGuardado={proveedorCreado} />
+      ) : null}
+      {altaMaterial && opcionesMaterial ? (
+        <FormularioMaterial
+          material={null}
+          opciones={opcionesMaterial}
+          enCompra
+          onCerrar={() => setAltaMaterial(false)}
+          onGuardado={materialCreado}
+        />
       ) : null}
     </Dialogo>
   )
