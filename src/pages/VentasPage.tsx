@@ -81,7 +81,7 @@ export function VentasPage() {
           <input
             value={busqueda}
             onChange={(event) => setBusqueda(event.target.value)}
-            placeholder="Factura, cliente, RUC, obra o fecha"
+            placeholder="Factura, cliente, RUC, destino o fecha"
           />
         </label>
         <button type="button" className="btn primary" onClick={() => setCreando(true)}>
@@ -362,6 +362,7 @@ export function NuevaVenta({
             <Campo etiqueta="Cliente">
               <input
                 list="clientes-venta"
+                aria-required={condicion === 'CREDITO'}
                 value={clienteTexto}
                 onChange={(event) => setClienteTexto(event.target.value)}
                 placeholder="Vacío = SIN NOMBRE"
@@ -377,9 +378,9 @@ export function NuevaVenta({
               <option key={item.id} value={etiquetaCliente(item)} />
             ))}
           </datalist>
-          <Campo etiqueta="Obra">
+          <Campo etiqueta="Destino">
             <select value={obraId} onChange={(event) => setObraId(event.target.value)} disabled={obras.length === 0}>
-              <option value="">{obras.length === 0 ? 'Sin obras' : 'Sin obra'}</option>
+              <option value="">{obras.length === 0 ? 'Sin destinos' : 'Sin destino'}</option>
               {obras.map((obra) => (
                 <option key={obra.id} value={obra.id}>
                   {obra.nombre}
@@ -388,13 +389,13 @@ export function NuevaVenta({
             </select>
           </Campo>
           <Campo etiqueta="Condición">
-            <select value={condicion} onChange={(event) => setCondicion(event.target.value as 'CONTADO' | 'CREDITO')}>
+            <select value={condicion} required onChange={(event) => setCondicion(event.target.value as 'CONTADO' | 'CREDITO')}>
               <option value="CONTADO">Contado</option>
               <option value="CREDITO">Crédito</option>
             </select>
           </Campo>
           <Campo etiqueta="Lista de precios">
-            <select value={lista} onChange={(event) => cambiarLista(event.target.value)}>
+            <select value={lista} required onChange={(event) => cambiarLista(event.target.value)}>
               {opciones?.listas.map((item) => (
                 <option key={item.id} value={item.codigo ?? ''}>
                   {item.nombre}
@@ -575,7 +576,7 @@ export function DetalleVenta({
           <Campo etiqueta="Nota de remisión">
             <strong>{texto(venta.notaRemision)}</strong>
           </Campo>
-          <Campo etiqueta="Obra">
+          <Campo etiqueta="Destino">
             <strong>{texto(venta.obra)}</strong>
           </Campo>
           <Campo etiqueta="Presupuesto">

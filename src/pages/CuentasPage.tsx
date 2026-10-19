@@ -297,7 +297,7 @@ function DetalleCuenta({
               <th>Factura</th>
               <th className="fecha">Fecha</th>
               <th className="fecha">Vence</th>
-              <th>Obra</th>
+              <th>Destino</th>
               <th className="numero">Total</th>
               <th className="numero">Cobrado</th>
               <th className="numero">Notas de crédito</th>
@@ -512,7 +512,7 @@ function NuevoRecibo({
                 <th />
                 <th>Factura</th>
                 <th className="fecha">Vence</th>
-                <th>Obra</th>
+                <th>Destino</th>
                 <th className="numero">Saldo</th>
                 <th className="numero">A cobrar</th>
               </tr>

@@ -315,6 +315,7 @@ function AbrirCaja({ onAbierta }: { onAbierta: () => void }) {
             value={monto}
             onChange={(event) => setMonto(mascaraMonto(event.target.value, 0))}
             placeholder="0"
+            aria-required="true"
             autoFocus
           />
         </Campo>
@@ -377,7 +378,7 @@ function NuevoMovimiento({
         <Aviso mensaje={error} />
         <div className="grilla">
           <Campo etiqueta="Medio de pago">
-            <select name="medioPagoId" defaultValue={efectivo?.id ?? medios[0]?.id}>
+            <select name="medioPagoId" required defaultValue={efectivo?.id ?? medios[0]?.id}>
               {medios.map((medio) => (
                 <option key={medio.id} value={medio.id}>
                   {medio.nombre}
@@ -497,6 +498,7 @@ function CerrarCaja({
           <Campo etiqueta="Efectivo contado">
             <input
               name="contado"
+              aria-required="true"
               className="monto"
               inputMode="numeric"
               value={contado}

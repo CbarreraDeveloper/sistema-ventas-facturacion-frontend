@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { cerrarSesion, cargarSesion } from '../api/client'
+import { apiListar, cargarSesion, salir } from '../api/client'
+
+const LATIDO_MS = 60_000
 
 function nombreVisible(nombre: string | undefined, usuario: string | undefined): string {
   const texto = (nombre?.trim() || usuario || '').trim()
@@ -44,6 +46,13 @@ export function AppShell({ ruta, children }: { ruta: string; children: ReactNode
     mesa.current?.scrollTo({ top: 0 })
     window.scrollTo({ top: 0 })
   }, [ruta])
+
+  useEffect(() => {
+    const latido = window.setInterval(() => {
+      apiListar('/auth/me').catch(() => undefined)
+    }, LATIDO_MS)
+    return () => window.clearInterval(latido)
+  }, [])
 
   useEffect(() => {
     const subir = (event: Event) => {
@@ -121,7 +130,7 @@ export function AppShell({ ruta, children }: { ruta: string; children: ReactNode
           </nav>
           <div className="lado-pie">
             <span>{nombreVisible(sesion?.nombre, sesion?.username)}</span>
-            <button type="button" className="btn ghost claro" onClick={cerrarSesion}>
+            <button type="button" className="btn ghost claro" onClick={() => void salir()}>
               Salir
             </button>
           </div>

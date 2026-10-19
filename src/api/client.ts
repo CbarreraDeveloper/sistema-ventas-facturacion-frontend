@@ -40,6 +40,15 @@ export function cerrarSesion() {
   window.dispatchEvent(new Event(AUTH_EVENT))
 }
 
+export async function salir() {
+  try {
+    await apiEnviar<void>('/auth/logout', { method: 'POST' })
+  } catch {
+    // Si el servidor no responde, la sesión igual se cierra en el navegador.
+  }
+  cerrarSesion()
+}
+
 async function leerError(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as { message?: string }

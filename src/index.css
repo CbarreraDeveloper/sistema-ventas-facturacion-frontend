@@ -444,6 +444,12 @@ a {
   color: #5c5148;
 }
 
+.campo:has(> :is(input, select, textarea):is(:required, [aria-required='true'])) > span:first-child::after {
+  content: ' *';
+  color: #a33a2c;
+  font-weight: 600;
+}
+
 .campo input,
 .campo select,
 .campo textarea,
@@ -647,6 +653,23 @@ a {
 
 .totales .total span {
   color: #d9d2c7;
+}
+
+.tabla th.centro,
+.tabla td.centro {
+  text-align: center;
+}
+
+.conectado {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2e7d32;
+  color: #fff;
+  font-size: 0.8rem;
+  line-height: 1;
 }
 
 .estado {

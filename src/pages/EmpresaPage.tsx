@@ -517,7 +517,7 @@ function FormularioTimbrado({
           <input name="numero" required inputMode="numeric" maxLength={8} placeholder="12345678" disabled={bloqueado} defaultValue={timbrado?.numero ?? ''} />
         </Campo>
         <Campo etiqueta="Comprobante">
-          <select name="tipoComprobante" disabled={bloqueado} defaultValue={timbrado?.tipoComprobante ?? 'FACTURA'}>
+          <select name="tipoComprobante" required disabled={bloqueado} defaultValue={timbrado?.tipoComprobante ?? 'FACTURA'}>
             {TIPOS.map((tipo) => (
               <option key={tipo.valor} value={tipo.valor}>
                 {tipo.etiqueta}
