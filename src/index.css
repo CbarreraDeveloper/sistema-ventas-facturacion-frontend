@@ -712,6 +712,21 @@ a {
   letter-spacing: 0.02em;
 }
 
+.paga-con {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.paga-con > span {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.paga-con > input {
+  min-width: 0;
+}
+
 .numero-factura {
   display: flex;
   align-items: center;

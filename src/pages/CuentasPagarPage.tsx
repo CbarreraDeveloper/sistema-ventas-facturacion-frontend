@@ -373,7 +373,7 @@ function NuevaOrden({
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   const total = Object.values(montos).reduce((suma, valor) => suma + (numeroOpcional(valor) ?? 0), 0)
-  const pago = useCobro(total, medios)
+  const pago = useCobro(total, medios, false)
 
   useEffect(() => {
     Promise.all([apiListar<CajaSesion | undefined>('/caja/actual'), apiListar<OpcionCatalogo[]>('/caja/medios')])
@@ -549,7 +549,6 @@ function NuevaOrden({
           <SeccionCobro
             cobro={pago}
             titulo="Pago"
-            conVuelto={false}
             detalle="El efectivo es lo que falta para completar la orden después de transferencias o cheques."
           />
         ) : null}
