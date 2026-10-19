@@ -18,7 +18,7 @@ export type PagoPedido = {
 
 export type EstadoCobro = ReturnType<typeof useCobro>
 
-export function useCobro(total: number, medios: OpcionCatalogo[]) {
+export function useCobro(total: number, medios: OpcionCatalogo[], conVuelto = true) {
   const [lineas, setLineas] = useState<LineaCobro[]>([])
   const [recibido, setRecibido] = useState('')
   const [siguiente, setSiguiente] = useState(1)
@@ -58,8 +58,13 @@ export function useCobro(total: number, medios: OpcionCatalogo[]) {
     if (efectivoACobrar < 0) {
       return 'Los otros medios de pago superan el total a cobrar'
     }
-    if (recibidoEfectivo != null && recibidoEfectivo < efectivoACobrar) {
-      return 'El efectivo recibido no alcanza para el total'
+    if (conVuelto && efectivoACobrar > 0) {
+      if (recibidoEfectivo == null) {
+        return 'Indicá con cuánto paga el cliente'
+      }
+      if (recibidoEfectivo < efectivoACobrar) {
+        return 'El efectivo entregado no alcanza para el total'
+      }
     }
     return null
   }
@@ -77,6 +82,7 @@ export function useCobro(total: number, medios: OpcionCatalogo[]) {
   }
 
   return {
+    conVuelto,
     lineas,
     recibido,
     setRecibido,
@@ -95,13 +101,12 @@ export function SeccionCobro({
   cobro,
   detalle,
   titulo = 'Cobro',
-  conVuelto = true,
 }: {
   cobro: EstadoCobro
   detalle: string
   titulo?: string
-  conVuelto?: boolean
 }) {
+  const pideVuelto = cobro.conVuelto && cobro.efectivoACobrar > 0
   return (
     <div className="ficha cobro">
       <div className="seccion-cabecera">
@@ -170,19 +175,22 @@ export function SeccionCobro({
               <td>Efectivo</td>
               <td className={cobro.efectivoACobrar < 0 ? 'numero falta' : 'numero'}>{dinero(cobro.efectivoACobrar)}</td>
               <td>
-                {conVuelto ? (
-                  <input
-                    className="monto"
-                    inputMode="numeric"
-                    aria-label="Efectivo recibido"
-                    value={cobro.recibido}
-                    placeholder="Recibido (opcional)"
-                    onChange={(event) => cobro.setRecibido(mascaraMonto(event.target.value, 0))}
-                  />
+                {pideVuelto ? (
+                  <label className="paga-con">
+                    <span>Paga con *</span>
+                    <input
+                      className="monto"
+                      inputMode="numeric"
+                      aria-required="true"
+                      value={cobro.recibido}
+                      placeholder="Ej.: 50.000"
+                      onChange={(event) => cobro.setRecibido(mascaraMonto(event.target.value, 0))}
+                    />
+                  </label>
                 ) : null}
               </td>
               <td className="numero vuelto">
-                {!conVuelto || cobro.vuelto == null ? null : cobro.vuelto < 0 ? (
+                {!pideVuelto || cobro.vuelto == null ? null : cobro.vuelto < 0 ? (
                   <span className="falta">Faltan {dinero(-cobro.vuelto)}</span>
                 ) : (
                   <strong>Vuelto {dinero(cobro.vuelto)}</strong>
