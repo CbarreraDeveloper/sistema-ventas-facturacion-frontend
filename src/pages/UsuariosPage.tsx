@@ -28,6 +28,8 @@ export function UsuariosPage() {
 
   useEffect(() => {
     void cargar()
+    const refresco = window.setInterval(() => void cargar(), 30_000)
+    return () => window.clearInterval(refresco)
   }, [])
 
   async function guardar(event: FormEvent<HTMLFormElement>) {
@@ -101,6 +103,7 @@ export function UsuariosPage() {
               <th>Usuario</th>
               <th>Roles</th>
               <th>Clave pendiente</th>
+              <th className="centro">Conectado</th>
               <th />
             </tr>
           </thead>
@@ -111,6 +114,22 @@ export function UsuariosPage() {
                 <td>{usuario.username}</td>
                 <td>{usuario.roles.join(', ')}</td>
                 <td>{usuario.mustChangePassword ? 'Sí' : 'No'}</td>
+                <td className="centro">
+                  {usuario.conectado ? (
+                    <span
+                      className="conectado"
+                      role="img"
+                      aria-label="Conectado"
+                      title={
+                        usuario.ultimaActividad
+                          ? `Conectado · última actividad ${new Date(usuario.ultimaActividad).toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit' })}`
+                          : 'Conectado'
+                      }
+                    >
+                      ✓
+                    </span>
+                  ) : null}
+                </td>
                 <td className="acciones">
                   <button type="button" className="btn ghost" onClick={() => setRestableciendo(usuario)}>
                     Restablecer clave

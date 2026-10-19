@@ -111,7 +111,7 @@ export function PresupuestosPage() {
               <th className="fecha">Fecha</th>
               <th>Número</th>
               <th>Cliente</th>
-              <th>Obra</th>
+              <th>Destino</th>
               <th className="numero">Total</th>
               <th className="fecha">Válido hasta</th>
               <th>Estado</th>
@@ -332,9 +332,9 @@ function FormPresupuesto({
               <option key={item.id} value={etiquetaCliente(item)} />
             ))}
           </datalist>
-          <Campo etiqueta="Obra">
+          <Campo etiqueta="Destino">
             <select value={obraId} onChange={(event) => setObraId(event.target.value)} disabled={obras.length === 0}>
-              <option value="">{obras.length === 0 ? 'Sin obras' : 'Sin obra'}</option>
+              <option value="">{obras.length === 0 ? 'Sin destinos' : 'Sin destino'}</option>
               {obras.map((obra) => (
                 <option key={obra.id} value={obra.id}>
                   {obra.nombre}
@@ -346,13 +346,13 @@ function FormPresupuesto({
             <input name="fecha" type="date" required defaultValue={presupuesto?.fecha ?? hoy()} max={hoy()} />
           </Campo>
           <Campo etiqueta="Condición">
-            <select value={condicion} onChange={(event) => setCondicion(event.target.value as 'CONTADO' | 'CREDITO')}>
+            <select value={condicion} required onChange={(event) => setCondicion(event.target.value as 'CONTADO' | 'CREDITO')}>
               <option value="CONTADO">Contado</option>
               <option value="CREDITO">Crédito</option>
             </select>
           </Campo>
           <Campo etiqueta="Lista de precios">
-            <select value={lista} onChange={(event) => cambiarLista(event.target.value)}>
+            <select value={lista} required onChange={(event) => cambiarLista(event.target.value)}>
               {opciones?.listas.map((item) => (
                 <option key={item.id} value={item.codigo ?? ''}>
                   {item.nombre}
@@ -376,7 +376,7 @@ function FormPresupuesto({
           ) : null}
         </div>
         {clienteTexto.trim() && !cliente ? (
-          <p className="ayuda">No es un cliente registrado: el nombre sale tal cual en el presupuesto. Para facturar a crédito o asignar obra hay que darlo de alta.</p>
+          <p className="ayuda">No es un cliente registrado: el nombre sale tal cual en el presupuesto. Para facturar a crédito o asignar un destino hay que darlo de alta.</p>
         ) : null}
         <EditorRenglones
           estado={renglones}
@@ -474,7 +474,7 @@ function DetallePresupuesto({
         <Campo etiqueta="RUC / CI">
           <strong>{texto(presupuesto.clienteDocumento)}</strong>
         </Campo>
-        <Campo etiqueta="Obra">
+        <Campo etiqueta="Destino">
           <strong>{texto(presupuesto.obra)}</strong>
         </Campo>
         <Campo etiqueta="Fecha">

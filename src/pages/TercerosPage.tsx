@@ -14,7 +14,7 @@ function documento(tercero: Tercero): string {
 }
 
 export function ClientesPage() {
-  return <TercerosPage rol="cliente" titulo="Clientes" detalle="Contratistas, comercios y obras de entrega." />
+  return <TercerosPage rol="cliente" titulo="Clientes" detalle="Contratistas, comercios, ferreterías, establecimientos y sus destinos de entrega." />
 }
 
 export function ProveedoresPage() {
@@ -56,7 +56,7 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
     try {
       setObras(await apiListar<Obra[]>(`/terceros/${tercero.id}/obras`))
     } catch (causa) {
-      setError(causa instanceof Error ? causa.message : 'No se pudieron leer las obras')
+      setError(causa instanceof Error ? causa.message : 'No se pudieron leer los destinos')
     }
   }
 
@@ -82,7 +82,7 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
       setError(null)
       setObras(await apiListar<Obra[]>(`/terceros/${seleccionado.id}/obras`))
     } catch (causa) {
-      setError(causa instanceof Error ? causa.message : 'No se pudo guardar la obra')
+      setError(causa instanceof Error ? causa.message : 'No se pudo guardar el destino')
     }
   }
 
@@ -91,9 +91,9 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
       return
     }
     const confirmado = await confirmar({
-      titulo: 'Quitar obra',
-      mensaje: `¿Quitar la obra ${obra.nombre} de ${seleccionado.razonSocial}? Los comprobantes ya emitidos conservan la obra; solo deja de ofrecerse en los nuevos.`,
-      aceptar: 'Quitar obra',
+      titulo: 'Quitar destino',
+      mensaje: `¿Quitar el destino ${obra.nombre} de ${seleccionado.razonSocial}? Los comprobantes ya emitidos lo conservan; solo deja de ofrecerse en los nuevos.`,
+      aceptar: 'Quitar destino',
       peligro: true,
     })
     if (!confirmado) {
@@ -107,7 +107,7 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
       setError(null)
       setObras(await apiListar<Obra[]>(`/terceros/${seleccionado.id}/obras`))
     } catch (causa) {
-      setError(causa instanceof Error ? causa.message : 'No se pudo quitar la obra')
+      setError(causa instanceof Error ? causa.message : 'No se pudo quitar el destino')
     }
   }
 
@@ -167,7 +167,7 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
                   </button>
                   {rol === 'cliente' ? (
                     <button type="button" className="btn ghost" onClick={() => void elegir(tercero)}>
-                      Obras
+                      Destinos
                     </button>
                   ) : null}
                 </td>
@@ -183,15 +183,15 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
       ) : null}
       {seleccionado && rol === 'cliente' ? (
         <section className="obras">
-          <h3>Obras de {seleccionado.razonSocial}</h3>
+          <h3>Destinos de {seleccionado.razonSocial}</h3>
           {obras.length === 0 ? (
-            <p className="vacio">Todavía no tiene obras.</p>
+            <p className="vacio">Todavía no tiene destinos.</p>
           ) : (
             <div className="tabla-contenedor bloque">
               <table className="tabla">
                 <thead>
                   <tr>
-                    <th>Obra</th>
+                    <th>Destino</th>
                     <th>Ciudad</th>
                     <th>Dirección</th>
                     <th />
@@ -222,8 +222,8 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
             className="grilla bloque"
             onSubmit={(event) => void guardarObra(event)}
           >
-            <Campo etiqueta={obraEditando ? `Editar obra ${obraEditando.nombre}` : 'Nueva obra'}>
-              <input name="nombre" required placeholder="Obra o local" defaultValue={obraEditando?.nombre ?? ''} autoFocus={obraEditando != null} />
+            <Campo etiqueta={obraEditando ? `Editar destino ${obraEditando.nombre}` : 'Nuevo destino'}>
+              <input name="nombre" required placeholder="Obra, ferretería, estancia, local…" defaultValue={obraEditando?.nombre ?? ''} autoFocus={obraEditando != null} />
             </Campo>
             <Campo etiqueta="Ciudad">
               <input name="ciudad" defaultValue={obraEditando?.ciudad ?? ''} />
@@ -238,7 +238,7 @@ function TercerosPage({ rol, titulo, detalle }: { rol: 'cliente' | 'proveedor'; 
                 </button>
               ) : null}
               <button className="btn primary" type="submit">
-                {obraEditando ? 'Guardar cambios' : 'Agregar obra'}
+                {obraEditando ? 'Guardar cambios' : 'Agregar destino'}
               </button>
             </div>
           </form>
@@ -327,7 +327,7 @@ export function FichaTercero({
           <input name="razonSocial" required defaultValue={tercero?.razonSocial ?? ''} />
         </Campo>
         <Campo etiqueta="Tipo">
-          <select name="tipoPersona" defaultValue={tercero?.tipoPersona ?? 'JURIDICA'}>
+          <select name="tipoPersona" required defaultValue={tercero?.tipoPersona ?? 'JURIDICA'}>
             <option value="JURIDICA">Jurídica</option>
             <option value="FISICA">Física</option>
           </select>

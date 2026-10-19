@@ -101,6 +101,8 @@ export type Compra = {
   plazoDias: number | null
   vencimiento: string | null
   saldo: number
+  medioPago: string | null
+  referenciaPago: string | null
   lineas: CompraLinea[]
 }
 
@@ -545,6 +547,8 @@ export type Usuario = {
   roles: string[]
   mustChangePassword: boolean
   activo: boolean
+  conectado: boolean
+  ultimaActividad: string | null
 }
 
 export type MotivoTraslado = 'VENTA' | 'CONSIGNACION' | 'DEVOLUCION' | 'TRASLADO_ENTRE_LOCALES' | 'EXHIBICION' | 'OTRO'

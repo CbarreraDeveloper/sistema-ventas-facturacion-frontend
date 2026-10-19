@@ -247,7 +247,7 @@ function FormularioMaterial({
           </datalist>
         </div>
         <Campo etiqueta="Costo">
-          <Monto name="costo" valor={material?.costo} />
+          <Monto name="costo" valor={material?.costo} required />
         </Campo>
         <Campo etiqueta="Minorista">
           <Monto name="precioMinorista" valor={material?.precioMinorista} />

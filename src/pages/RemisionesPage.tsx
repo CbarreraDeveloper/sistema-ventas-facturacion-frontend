@@ -399,7 +399,7 @@ export function NuevaRemision({
               <Campo etiqueta="Destinatario">
                 <strong>{factura.cliente}</strong>
               </Campo>
-              <Campo etiqueta="Obra">
+              <Campo etiqueta="Destino">
                 <strong>{texto(factura.obra)}</strong>
               </Campo>
               <Campo etiqueta="Motivo">
@@ -409,7 +409,7 @@ export function NuevaRemision({
           ) : (
             <>
               <Campo etiqueta="Motivo">
-                <select value={motivo} onChange={(event) => setMotivo(event.target.value as MotivoTraslado)}>
+                <select value={motivo} required onChange={(event) => setMotivo(event.target.value as MotivoTraslado)}>
                   {MOTIVOS.map((item) => (
                     <option key={item.valor} value={item.valor}>
                       {item.etiqueta}
@@ -430,9 +430,9 @@ export function NuevaRemision({
                   <option key={item.id} value={etiquetaCliente(item)} />
                 ))}
               </datalist>
-              <Campo etiqueta="Obra">
+              <Campo etiqueta="Destino">
                 <select value={obraId} onChange={(event) => elegirObra(event.target.value)} disabled={obras.length === 0}>
-                  <option value="">{obras.length === 0 ? 'Sin obras' : 'Sin obra'}</option>
+                  <option value="">{obras.length === 0 ? 'Sin destinos' : 'Sin destino'}</option>
                   {obras.map((obra) => (
                     <option key={obra.id} value={obra.id}>
                       {obra.nombre}
@@ -627,7 +627,7 @@ export function DetalleRemision({
         <Campo etiqueta="RUC / CI">
           <strong>{texto(remision.clienteDocumento)}</strong>
         </Campo>
-        <Campo etiqueta="Obra">
+        <Campo etiqueta="Destino">
           <strong>{texto(remision.obra)}</strong>
         </Campo>
         <Campo etiqueta="Fecha de emisión">

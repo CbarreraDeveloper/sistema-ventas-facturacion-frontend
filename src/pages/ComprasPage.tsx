@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiCrear, apiListar, cantidad, dinero, fecha, hoy, texto } from '../api/client'
 import { confirmar } from '../components/Confirmacion'
-import type { Compra, Material, Tercero } from '../api/types'
+import type { CajaSesion, Compra, Material, OpcionCatalogo, Tercero } from '../api/types'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { CuadroTotales, sumarTotales, totalesDe } from '../components/Totales'
 import type { Totales } from '../components/Totales'
@@ -165,6 +165,10 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
   const [proveedorId, setProveedorId] = useState('')
   const [plazo, setPlazo] = useState('')
   const [altaProveedor, setAltaProveedor] = useState(false)
+  const [medios, setMedios] = useState<OpcionCatalogo[]>([])
+  const [medioId, setMedioId] = useState('')
+  const [caja, setCaja] = useState<CajaSesion | null | undefined>(undefined)
+  const medioElegido = medios.find((medio) => String(medio.id) === medioId)
 
   function elegirProveedor(id: string, lista: Tercero[] = proveedores) {
     setProveedorId(id)
@@ -183,10 +187,19 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
   }
 
   useEffect(() => {
-    Promise.all([apiListar<Tercero[]>('/terceros?rol=proveedor'), apiListar<Material[]>('/productos')])
-      .then(([listaProveedores, listaMateriales]) => {
+    Promise.all([
+      apiListar<Tercero[]>('/terceros?rol=proveedor'),
+      apiListar<Material[]>('/productos'),
+      apiListar<CajaSesion | undefined>('/caja/actual'),
+      apiListar<OpcionCatalogo[]>('/caja/medios'),
+    ])
+      .then(([listaProveedores, listaMateriales, abierta, listaMedios]) => {
         setProveedores(listaProveedores)
         setMateriales(listaMateriales.filter((material) => material.activo))
+        setCaja(abierta ?? null)
+        setMedios(listaMedios)
+        const efectivo = listaMedios.find((medio) => medio.codigo === 'EFECTIVO') ?? listaMedios[0]
+        setMedioId(efectivo ? String(efectivo.id) : '')
       })
       .catch((causa: unknown) => setError(causa instanceof Error ? causa.message : 'No se pudieron leer los datos'))
   }, [])
@@ -236,6 +249,17 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
       setError('Indicá el precio de todos los materiales')
       return
     }
+    if (!credito) {
+      if (!caja) {
+        setError('Para registrar una compra al contado tenés que abrir tu caja (menú Caja).')
+        return
+      }
+      const total = calcularTotales(lineas).total
+      if (medioElegido?.codigo === 'EFECTIVO' && total > caja.efectivoEsperado) {
+        setError(`En la caja hay Gs. ${dinero(caja.efectivoEsperado)} en efectivo. No alcanza para pagar Gs. ${dinero(total)}`)
+        return
+      }
+    }
     const form = event.currentTarget
     setGuardando(true)
     try {
@@ -244,6 +268,8 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
         fecha: valorInput(form, 'fecha'),
         condicion: valorInput(form, 'condicion'),
         plazoDias: credito ? numeroOpcional(plazo) : null,
+        medioPagoId: credito ? null : Number(medioId),
+        referenciaPago: credito || medioElegido?.codigo === 'EFECTIVO' ? null : textoOpcional(valorInput(form, 'referenciaPago')),
         numeroComprobante: valorInput(form, 'numeroComprobante'),
         timbradoNumero: textoOpcional(valorInput(form, 'timbradoNumero')),
         observacion: textoOpcional(valorInput(form, 'observacion')),
@@ -258,11 +284,12 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
   }
 
   const totales = calcularTotales(lineas)
+  const bloqueo = !credito && caja === null ? 'Para registrar una compra al contado tenés que abrir tu caja (menú Caja).' : null
 
   return (
     <Dialogo clase="ancho" titulo="Nueva compra" onCerrar={onCerrar}>
       <form onSubmit={(event) => void guardar(event)}>
-        <Aviso mensaje={error} />
+        <Aviso mensaje={error ?? bloqueo} />
         <div className="grilla tres">
           <div className="campo-con-accion">
             <Campo etiqueta="Proveedor">
@@ -295,7 +322,7 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
             <input name="fecha" type="date" required defaultValue={hoy()} max={hoy()} />
           </Campo>
           <Campo etiqueta="Condición">
-            <select name="condicion" defaultValue="CONTADO" onChange={(event) => setCredito(event.target.value === 'CREDITO')}>
+            <select name="condicion" required defaultValue="CONTADO" onChange={(event) => setCredito(event.target.value === 'CREDITO')}>
               <option value="CONTADO">Contado</option>
               <option value="CREDITO">Crédito</option>
             </select>
@@ -309,6 +336,21 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
                 placeholder="Sin plazo"
                 onChange={(event) => setPlazo(event.target.value.replace(/\D/g, ''))}
               />
+            </Campo>
+          ) : (
+            <Campo etiqueta="Medio de pago">
+              <select name="medioPagoId" required value={medioId} onChange={(event) => setMedioId(event.target.value)}>
+                {medios.map((medio) => (
+                  <option key={medio.id} value={medio.id}>
+                    {medio.nombre}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          )}
+          {!credito && medioElegido && medioElegido.codigo !== 'EFECTIVO' ? (
+            <Campo etiqueta="Referencia del pago">
+              <input name="referenciaPago" maxLength={80} placeholder="N° de transferencia, cheque, etc." />
             </Campo>
           ) : null}
           <Campo etiqueta="Factura N°">
@@ -399,7 +441,7 @@ function NuevaCompra({ onCerrar, onGuardada }: { onCerrar: () => void; onGuardad
             <button className="btn" type="button" onClick={onCerrar}>
               Cancelar
             </button>
-            <button className="btn primary" type="submit" disabled={guardando}>
+            <button className="btn primary" type="submit" disabled={guardando || bloqueo !== null}>
               Confirmar compra
             </button>
           </div>
@@ -428,7 +470,9 @@ function DetalleCompra({
     if (
       !(await confirmar({
         titulo: 'Anular compra',
-        mensaje: `¿Anular la factura ${compra.numeroComprobante}? Se descontará el stock que sumó.`,
+        mensaje: `¿Anular la factura ${compra.numeroComprobante}? Se descontará el stock que sumó${
+          compra.medioPago ? ' y el pago vuelve a entrar a la caja' : ''
+        }.`,
         aceptar: 'Anular compra',
         peligro: true,
       }))
@@ -474,6 +518,14 @@ function DetalleCompra({
               <strong className={compra.saldo > 0 ? 'falta' : undefined}>{dinero(compra.saldo)}</strong>
             </Campo>
           </>
+        ) : null}
+        {compra.medioPago ? (
+          <Campo etiqueta="Medio de pago">
+            <strong>
+              {compra.medioPago}
+              {compra.referenciaPago ? ` · ${compra.referenciaPago}` : ''}
+            </strong>
+          </Campo>
         ) : null}
         <Campo etiqueta="Timbrado">
           <strong>{texto(compra.timbradoNumero)}</strong>

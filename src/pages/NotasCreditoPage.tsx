@@ -184,6 +184,7 @@ function ElegirFactura({ onCerrar, onElegida }: { onCerrar: () => void; onElegid
       <Campo etiqueta="Factura">
         <input
           list="facturas-credito"
+          aria-required="true"
           value={elegida}
           onChange={(event) => setElegida(event.target.value)}
           placeholder="Escribí el número o el cliente y elegí de la lista"
@@ -390,7 +391,7 @@ export function NuevaNotaCredito({
             </strong>
           </Campo>
           <Campo etiqueta="Motivo">
-            <select value={motivo} onChange={(event) => cambiarMotivo(event.target.value as MotivoCredito)}>
+            <select value={motivo} required onChange={(event) => cambiarMotivo(event.target.value as MotivoCredito)}>
               {MOTIVOS.map((item) => (
                 <option key={item.valor} value={item.valor}>
                   {item.etiqueta}
@@ -459,7 +460,7 @@ export function NuevaNotaCredito({
         {reintegro > 0 && opciones?.cajaAbierta ? (
           <div className="grilla tres">
             <Campo etiqueta="Se devuelve en">
-              <select value={medioId} onChange={(event) => setMedioId(event.target.value)}>
+              <select value={medioId} required onChange={(event) => setMedioId(event.target.value)}>
                 {opciones.medios.map((medio) => (
                   <option key={medio.id} value={medio.id}>
                     {medio.nombre}
