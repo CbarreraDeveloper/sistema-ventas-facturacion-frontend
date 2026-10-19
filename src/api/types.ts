@@ -351,7 +351,11 @@ export type PuntoVenta = {
   descripcion: string
   timbrado: string
   vigenteHasta: string
-  proximoComprobante: string
+  proximoComprobante: string | null
+  proximoNumero: number | null
+  prefijo: string
+  numeroDesde: number
+  numeroHasta: number
   disponibles: number
 }
 
