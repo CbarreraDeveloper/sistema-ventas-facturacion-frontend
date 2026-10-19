@@ -444,7 +444,8 @@ a {
   color: #5c5148;
 }
 
-.campo:has(> :is(input, select, textarea):is(:required, [aria-required='true'])) > span:first-child::after {
+.campo:has(> :is(input, select, textarea):is(:required, [aria-required='true'])) > span:first-child::after,
+.campo:has(> .numero-factura > input[aria-required='true']) > span:first-child::after {
   content: ' *';
   color: #a33a2c;
   font-weight: 600;
@@ -709,6 +710,21 @@ a {
   padding: 9px 0;
   font-size: 1.05rem;
   letter-spacing: 0.02em;
+}
+
+.numero-factura {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.numero-factura > strong {
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.numero-factura > input {
+  min-width: 0;
 }
 
 .estado.anulado {

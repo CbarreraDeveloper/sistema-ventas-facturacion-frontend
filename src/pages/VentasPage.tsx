@@ -9,6 +9,7 @@ import type {
   NotaCredito,
   Obra,
   Presupuesto,
+  PuntoVenta,
   Remision,
   Tercero,
   Venta,
@@ -169,6 +170,7 @@ export function NuevaVenta({
   const [materiales, setMateriales] = useState<Material[]>([])
   const [obras, setObras] = useState<Obra[]>([])
   const [puntoId, setPuntoId] = useState('')
+  const [numeroTexto, setNumeroTexto] = useState('')
   const [condicion, setCondicion] = useState<'CONTADO' | 'CREDITO'>(presupuesto?.condicion ?? 'CONTADO')
   const [lista, setLista] = useState(presupuesto?.listaPrecio ?? 'MINORISTA')
   const [clienteTexto, setClienteTexto] = useState('')
@@ -189,7 +191,7 @@ export function NuevaVenta({
     ])
       .then(([datos, listaClientes, listaMateriales]) => {
         setOpciones(datos)
-        setPuntoId(datos.puntos[0] ? String(datos.puntos[0].puntoExpedicionId) : '')
+        elegirPunto(datos.puntos[0])
         setClientes(listaClientes)
         const activos = listaMateriales.filter((material) => material.activo)
         setMateriales(activos)
@@ -253,6 +255,11 @@ export function NuevaVenta({
     setError(null)
   }
 
+  function elegirPunto(punto: PuntoVenta | undefined) {
+    setPuntoId(punto ? String(punto.puntoExpedicionId) : '')
+    setNumeroTexto(punto?.proximoNumero ? String(punto.proximoNumero) : '')
+  }
+
   function cambiarLista(codigo: string) {
     setLista(codigo)
     renglones.repreciar(codigo)
@@ -289,10 +296,19 @@ export function NuevaVenta({
       return
     }
     const punto = opciones?.puntos.find((item) => String(item.puntoExpedicionId) === puntoId)
+    const numero = Number(numeroTexto)
+    if (!numeroTexto || !Number.isInteger(numero)) {
+      setError('Indicá el número de la factura')
+      return
+    }
+    if (punto && (numero < punto.numeroDesde || numero > punto.numeroHasta)) {
+      setError(`El número tiene que estar entre ${punto.numeroDesde} y ${punto.numeroHasta}, el rango del timbrado ${punto.timbrado}`)
+      return
+    }
     if (
       !(await confirmar({
         titulo: 'Emitir factura',
-        mensaje: `¿Emitir la factura ${punto?.proximoComprobante ?? ''} por Gs. ${dinero(totales.total)} a ${cliente?.razonSocial ?? SIN_NOMBRE}?`,
+        mensaje: `¿Emitir la factura ${punto?.prefijo ?? ''}${String(numero).padStart(7, '0')} por Gs. ${dinero(totales.total)} a ${cliente?.razonSocial ?? SIN_NOMBRE}?`,
         aceptar: 'Emitir factura',
       }))
     ) {
@@ -305,6 +321,7 @@ export function NuevaVenta({
         obraId: obraId ? Number(obraId) : null,
         presupuestoId: presupuesto?.id ?? null,
         puntoExpedicionId: Number(puntoId),
+        numero,
         fecha: (form.elements.namedItem('fecha') as HTMLInputElement).value,
         condicion,
         listaPrecio: lista,
@@ -344,7 +361,13 @@ export function NuevaVenta({
         <Aviso mensaje={error ?? bloqueo} />
         <div className="grilla tres">
           <Campo etiqueta="Punto de expedición">
-            <select value={puntoId} onChange={(event) => setPuntoId(event.target.value)} required>
+            <select
+              value={puntoId}
+              onChange={(event) =>
+                elegirPunto(opciones?.puntos.find((item) => String(item.puntoExpedicionId) === event.target.value))
+              }
+              required
+            >
               {opciones?.puntos.map((punto) => (
                 <option key={punto.puntoExpedicionId} value={punto.puntoExpedicionId}>
                   {punto.codigo} · {punto.descripcion}
@@ -353,7 +376,17 @@ export function NuevaVenta({
             </select>
           </Campo>
           <Campo etiqueta="Factura N°">
-            <strong className="proximo">{puntoElegido?.proximoComprobante ?? '—'}</strong>
+            <div className="numero-factura">
+              <strong>{puntoElegido?.prefijo ?? '—'}</strong>
+              <input
+                inputMode="numeric"
+                maxLength={7}
+                aria-required="true"
+                value={numeroTexto}
+                onChange={(event) => setNumeroTexto(event.target.value.replace(/\D/g, ''))}
+                placeholder={puntoElegido ? `${puntoElegido.numeroDesde} a ${puntoElegido.numeroHasta}` : ''}
+              />
+            </div>
           </Campo>
           <Campo etiqueta="Fecha">
             <input name="fecha" type="date" required defaultValue={hoy()} max={hoy()} />
@@ -428,7 +461,9 @@ export function NuevaVenta({
         ) : null}
         {puntoElegido ? (
           <p className="ayuda">
-            Timbrado {puntoElegido.timbrado}, vigente hasta {fecha(puntoElegido.vigenteHasta)}. Quedan {puntoElegido.disponibles} números.
+            Timbrado {puntoElegido.timbrado}, vigente hasta {fecha(puntoElegido.vigenteHasta)}. Talonario del{' '}
+            {puntoElegido.numeroDesde} al {puntoElegido.numeroHasta}. Podés cambiar el número sugerido por el de la
+            factura en papel.
           </p>
         ) : null}
         <EditorRenglones
