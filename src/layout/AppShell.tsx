@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { apiListar, cargarSesion, salir } from '../api/client'
+import { apiListar, cargarSesion, renovarSesion, salir } from '../api/client'
 
 const LATIDO_MS = 60_000
 
@@ -48,10 +48,22 @@ export function AppShell({ ruta, children }: { ruta: string; children: ReactNode
   }, [ruta])
 
   useEffect(() => {
-    const latido = window.setInterval(() => {
-      apiListar('/auth/me').catch(() => undefined)
-    }, LATIDO_MS)
-    return () => window.clearInterval(latido)
+    const latir = () => {
+      renovarSesion()
+        .then(() => apiListar('/auth/me'))
+        .catch(() => undefined)
+    }
+    const alVolver = () => {
+      if (document.visibilityState === 'visible') {
+        latir()
+      }
+    }
+    const latido = window.setInterval(latir, LATIDO_MS)
+    document.addEventListener('visibilitychange', alVolver)
+    return () => {
+      window.clearInterval(latido)
+      document.removeEventListener('visibilitychange', alVolver)
+    }
   }, [])
 
   useEffect(() => {

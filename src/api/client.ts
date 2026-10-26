@@ -49,6 +49,42 @@ export async function salir() {
   cerrarSesion()
 }
 
+const RENOVAR_ANTES_MS = 20 * 60_000
+
+function venceEn(token: string): number | null {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const { exp } = JSON.parse(atob(payload)) as { exp?: number }
+    return typeof exp === 'number' ? exp * 1000 : null
+  } catch {
+    return null
+  }
+}
+
+export async function renovarSesion() {
+  const sesion = cargarSesion()
+  if (!sesion?.token) {
+    return
+  }
+  const vence = venceEn(sesion.token)
+  if (vence !== null && vence - Date.now() > RENOVAR_ANTES_MS) {
+    return
+  }
+  const respuesta = await apiEnviar<{ token: string; roles?: string[]; mustChangePassword: boolean }>(
+    '/auth/refresh',
+    { method: 'POST' },
+  )
+  const actual = cargarSesion()
+  if (actual?.token === sesion.token) {
+    guardarSesion({
+      ...actual,
+      token: respuesta.token,
+      roles: respuesta.roles ?? actual.roles,
+      mustChangePassword: respuesta.mustChangePassword,
+    })
+  }
+}
+
 async function leerError(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as { message?: string }
