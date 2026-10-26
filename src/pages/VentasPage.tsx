@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiAbrir, apiCrear, apiListar, cantidad, cargarSesion, dinero, fecha, hoy, texto } from '../api/client'
+import { apiAbrir, apiCrear, apiEliminar, apiListar, cantidad, cargarSesion, dinero, fecha, hoy, texto } from '../api/client'
 import { confirmar } from '../components/Confirmacion'
 import type {
   EntregaPendiente,
@@ -148,6 +148,10 @@ export function VentasPage() {
           onCerrar={() => setViendo(null)}
           onAnulada={(anulada) => {
             setViendo(anulada)
+            void cargar()
+          }}
+          onEliminada={() => {
+            setViendo(null)
             void cargar()
           }}
         />
@@ -503,13 +507,16 @@ export function DetalleVenta({
   venta,
   onCerrar,
   onAnulada,
+  onEliminada,
 }: {
   venta: Venta
   onCerrar: () => void
   onAnulada: (venta: Venta) => void
+  onEliminada?: () => void
 }) {
   const [error, setError] = useState<string | null>(null)
   const [anulando, setAnulando] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
   const [remisiones, setRemisiones] = useState<Remision[]>([])
   const [pendientes, setPendientes] = useState<EntregaPendiente[]>([])
   const [remitiendo, setRemitiendo] = useState(false)
@@ -586,6 +593,31 @@ export function DetalleVenta({
       setError(causa instanceof Error ? causa.message : 'No se pudo anular la factura')
     } finally {
       setAnulando(false)
+    }
+  }
+
+  async function eliminar() {
+    if (!onEliminada) {
+      return
+    }
+    if (
+      !(await confirmar({
+        titulo: 'Eliminar factura anulada',
+        mensaje: `¿Eliminar definitivamente la factura ${venta.numeroComprobante}? Usalo solo si se anuló por un error de carga: desaparece del sistema junto con sus movimientos de stock y caja, y el número ${venta.numeroComprobante} queda libre para volver a cargarla. No se puede deshacer.`,
+        aceptar: 'Eliminar factura',
+        peligro: true,
+      }))
+    ) {
+      return
+    }
+    setEliminando(true)
+    try {
+      await apiEliminar(`/ventas/${venta.id}`)
+      onEliminada()
+    } catch (causa) {
+      setError(causa instanceof Error ? causa.message : 'No se pudo eliminar la factura')
+    } finally {
+      setEliminando(false)
     }
   }
 
@@ -751,6 +783,11 @@ export function DetalleVenta({
           {esAdmin && venta.estado === 'CONFIRMADO' ? (
             <button type="button" className="btn" disabled={anulando} onClick={() => void anular()}>
               Anular factura
+            </button>
+          ) : null}
+          {esAdmin && onEliminada && venta.estado === 'ANULADO' ? (
+            <button type="button" className="btn" disabled={eliminando} onClick={() => void eliminar()}>
+              Eliminar factura
             </button>
           ) : null}
           {venta.estado === 'CONFIRMADO' && porEntregar.length > 0 ? (
