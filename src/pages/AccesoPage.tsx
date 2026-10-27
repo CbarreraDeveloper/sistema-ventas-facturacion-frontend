@@ -15,6 +15,7 @@ type LoginResponse = {
 export function LoginPage({ onSesion }: { onSesion: (sesion: Sesion) => void }) {
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const [animarLogo] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
   async function ingresar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -49,7 +50,11 @@ export function LoginPage({ onSesion }: { onSesion: (sesion: Sesion) => void }) 
   return (
     <main className="acceso">
       <form className="panel acceso-panel" onSubmit={ingresar}>
-        <img className="logo-acceso" src="/logo-distriworld.jpg" alt="Distriworld" />
+        {animarLogo ? (
+          <video className="logo-acceso" src="/logo-reveal.mp4" autoPlay muted playsInline aria-label="Distriworld" />
+        ) : (
+          <img className="logo-acceso" src="/logo-distriworld.jpg" alt="Distriworld" />
+        )}
         <p className="kicker">Pisos y sanitarios</p>
         <h1>Distriworld</h1>
         <p className="lead">Ingrese con el usuario del escritorio.</p>
