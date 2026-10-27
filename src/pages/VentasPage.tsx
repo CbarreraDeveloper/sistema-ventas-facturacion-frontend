@@ -8,6 +8,7 @@ import type {
   Material,
   NotaCredito,
   Obra,
+  OpcionesMaterial,
   Presupuesto,
   PuntoVenta,
   Remision,
@@ -21,6 +22,7 @@ import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { EditorRenglones, useRenglones } from '../components/Renglones'
 import { CuadroTotales, totalesDe } from '../components/Totales'
 import { Aviso, Barra, Campo, Dialogo, textoOpcional } from '../components/ui'
+import { FormularioMaterial } from './MaterialesPage'
 import { DetalleNotaCredito, NuevaNotaCredito } from './NotasCreditoPage'
 import { DetalleRemision, NuevaRemision } from './RemisionesPage'
 import { FichaTercero } from './TercerosPage'
@@ -183,11 +185,16 @@ export function NuevaVenta({
   const [guardando, setGuardando] = useState(false)
   const [cuenta, setCuenta] = useState<EstadoCuenta | null>(null)
   const [altaCliente, setAltaCliente] = useState(false)
+  const [altaMaterial, setAltaMaterial] = useState(false)
+  const [opcionesMaterial, setOpcionesMaterial] = useState<OpcionesMaterial | null>(null)
   const renglones = useRenglones()
   const totales = renglones.totales
   const cobro = useCobro(totales.total, opciones?.medios ?? [])
 
   useEffect(() => {
+    apiListar<OpcionesMaterial>('/productos/opciones')
+      .then(setOpcionesMaterial)
+      .catch(() => undefined)
     Promise.all([
       apiListar<VentaOpciones>('/ventas/opciones'),
       apiListar<Tercero[]>('/terceros?rol=cliente'),
@@ -256,6 +263,15 @@ export function NuevaVenta({
     )
     setClienteTexto(etiquetaCliente(nuevo))
     setAltaCliente(false)
+    setError(null)
+  }
+
+  function materialCreado(nuevo: Material) {
+    setMateriales((actuales) =>
+      [...actuales.filter((item) => item.id !== nuevo.id), nuevo].sort((a, b) => a.codigo.localeCompare(b.codigo, 'es')),
+    )
+    renglones.agregar(nuevo, lista)
+    setAltaMaterial(false)
     setError(null)
   }
 
@@ -475,6 +491,7 @@ export function NuevaVenta({
           materiales={materiales}
           lista={lista}
           avisarStock="Hay líneas que superan el stock registrado. Se puede facturar igual y el stock queda en negativo."
+          onNuevo={opcionesMaterial ? () => setAltaMaterial(true) : undefined}
         />
         <CuadroTotales totales={totales} />
         {condicion === 'CONTADO' && opciones?.cajaAbierta ? (
@@ -498,6 +515,14 @@ export function NuevaVenta({
       </form>
       {altaCliente ? (
         <FichaTercero rol="cliente" tercero={null} onCerrar={() => setAltaCliente(false)} onGuardado={clienteCreado} />
+      ) : null}
+      {altaMaterial && opcionesMaterial ? (
+        <FormularioMaterial
+          material={null}
+          opciones={opcionesMaterial}
+          onCerrar={() => setAltaMaterial(false)}
+          onGuardado={materialCreado}
+        />
       ) : null}
     </Dialogo>
   )

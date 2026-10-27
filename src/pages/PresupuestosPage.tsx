@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiAbrir, apiActualizar, apiCrear, apiListar, cantidad, dinero, fecha, hoy, texto } from '../api/client'
 import { confirmar } from '../components/Confirmacion'
-import type { EstadoPresupuesto, Material, Obra, Presupuesto, Tercero, Venta, VentaOpciones } from '../api/types'
+import type { EstadoPresupuesto, Material, Obra, OpcionesMaterial, Presupuesto, Tercero, Venta, VentaOpciones } from '../api/types'
 import { etiquetaCliente } from '../components/etiquetas'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { EditorRenglones, useRenglones } from '../components/Renglones'
 import { CuadroTotales, totalesDe } from '../components/Totales'
 import { Aviso, Barra, Campo, Dialogo, textoOpcional } from '../components/ui'
+import { FormularioMaterial } from './MaterialesPage'
+import { FichaTercero } from './TercerosPage'
 import { DetalleVenta, NuevaVenta } from './VentasPage'
 
 const ESTADOS: { valor: EstadoPresupuesto | ''; etiqueta: string }[] = [
@@ -212,9 +214,15 @@ function FormPresupuesto({
   const [lista, setLista] = useState(presupuesto?.listaPrecio ?? 'MINORISTA')
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
+  const [altaCliente, setAltaCliente] = useState(false)
+  const [altaMaterial, setAltaMaterial] = useState(false)
+  const [opcionesMaterial, setOpcionesMaterial] = useState<OpcionesMaterial | null>(null)
   const renglones = useRenglones()
 
   useEffect(() => {
+    apiListar<OpcionesMaterial>('/productos/opciones')
+      .then(setOpcionesMaterial)
+      .catch(() => undefined)
     Promise.all([
       apiListar<VentaOpciones>('/ventas/opciones'),
       apiListar<Tercero[]>('/terceros?rol=cliente'),
@@ -269,6 +277,26 @@ function FormPresupuesto({
     renglones.repreciar(codigo)
   }
 
+  function clienteCreado(nuevo: Tercero) {
+    setClientes((actuales) =>
+      [...actuales.filter((item) => item.id !== nuevo.id), nuevo].sort((a, b) =>
+        a.razonSocial.localeCompare(b.razonSocial, 'es'),
+      ),
+    )
+    setClienteTexto(etiquetaCliente(nuevo))
+    setAltaCliente(false)
+    setError(null)
+  }
+
+  function materialCreado(nuevo: Material) {
+    setMateriales((actuales) =>
+      [...actuales.filter((item) => item.id !== nuevo.id), nuevo].sort((a, b) => a.codigo.localeCompare(b.codigo, 'es')),
+    )
+    renglones.agregar(nuevo, lista)
+    setAltaMaterial(false)
+    setError(null)
+  }
+
   async function guardar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const problema = renglones.validar()
@@ -318,15 +346,20 @@ function FormPresupuesto({
       <form onSubmit={(event) => void guardar(event)}>
         <Aviso mensaje={error} />
         <div className="grilla tres">
-          <Campo etiqueta="Cliente">
-            <input
-              list="clientes-presupuesto"
-              value={clienteTexto}
-              onChange={(event) => setClienteTexto(event.target.value)}
-              placeholder="Elegí de la lista o escribí un nombre"
-              maxLength={150}
-            />
-          </Campo>
+          <div className="campo-con-accion">
+            <Campo etiqueta="Cliente">
+              <input
+                list="clientes-presupuesto"
+                value={clienteTexto}
+                onChange={(event) => setClienteTexto(event.target.value)}
+                placeholder="Elegí de la lista o escribí un nombre"
+                maxLength={150}
+              />
+            </Campo>
+            <button type="button" className="btn" title="Registrar un cliente nuevo" onClick={() => setAltaCliente(true)}>
+              Nuevo
+            </button>
+          </div>
           <datalist id="clientes-presupuesto">
             {clientes.map((item) => (
               <option key={item.id} value={etiquetaCliente(item)} />
@@ -383,6 +416,7 @@ function FormPresupuesto({
           materiales={materiales}
           lista={lista}
           avisarStock="Hay materiales con menos stock que lo presupuestado. Conviene avisar el plazo de entrega."
+          onNuevo={opcionesMaterial ? () => setAltaMaterial(true) : undefined}
         />
         <CuadroTotales totales={renglones.totales} />
         <div className="grilla">
@@ -401,6 +435,17 @@ function FormPresupuesto({
           </div>
         </div>
       </form>
+      {altaCliente ? (
+        <FichaTercero rol="cliente" tercero={null} onCerrar={() => setAltaCliente(false)} onGuardado={clienteCreado} />
+      ) : null}
+      {altaMaterial && opcionesMaterial ? (
+        <FormularioMaterial
+          material={null}
+          opciones={opcionesMaterial}
+          onCerrar={() => setAltaMaterial(false)}
+          onGuardado={materialCreado}
+        />
+      ) : null}
     </Dialogo>
   )
 }

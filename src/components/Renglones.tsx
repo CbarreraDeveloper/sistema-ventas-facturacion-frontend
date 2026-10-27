@@ -146,11 +146,13 @@ export function EditorRenglones({
   materiales,
   lista,
   avisarStock,
+  onNuevo,
 }: {
   estado: EstadoRenglones
   materiales: Material[]
   lista: string
   avisarStock: string
+  onNuevo?: () => void
 }) {
   const [buscar, setBuscar] = useState('')
 
@@ -167,14 +169,21 @@ export function EditorRenglones({
     <>
       <div className="grilla bloque">
         <div className="span">
-          <Campo etiqueta="Agregar material">
-            <input
-              list="materiales-renglones"
-              value={buscar}
-              onChange={(event) => elegir(event.target.value)}
-              placeholder="Escribí código o descripción y elegí de la lista"
-            />
-          </Campo>
+          <div className={onNuevo ? 'campo-con-accion' : undefined}>
+            <Campo etiqueta="Agregar material">
+              <input
+                list="materiales-renglones"
+                value={buscar}
+                onChange={(event) => elegir(event.target.value)}
+                placeholder="Escribí código o descripción y elegí de la lista"
+              />
+            </Campo>
+            {onNuevo ? (
+              <button type="button" className="btn" title="Registrar un material nuevo" onClick={onNuevo}>
+                Nuevo
+              </button>
+            ) : null}
+          </div>
           <datalist id="materiales-renglones">
             {materiales.map((material) => (
               <option key={material.id} value={etiquetaMaterial(material)} />
