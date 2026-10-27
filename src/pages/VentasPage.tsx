@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiAbrir, apiCrear, apiListar, cantidad, cargarSesion, dinero, fecha, hoy, texto } from '../api/client'
+import { apiAbrir, apiCrear, apiEliminar, apiListar, cantidad, cargarSesion, dinero, fecha, hoy, texto } from '../api/client'
 import { confirmar } from '../components/Confirmacion'
 import type {
   EntregaPendiente,
@@ -8,6 +8,7 @@ import type {
   Material,
   NotaCredito,
   Obra,
+  OpcionesMaterial,
   Presupuesto,
   PuntoVenta,
   Remision,
@@ -21,6 +22,7 @@ import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { EditorRenglones, useRenglones } from '../components/Renglones'
 import { CuadroTotales, totalesDe } from '../components/Totales'
 import { Aviso, Barra, Campo, Dialogo, textoOpcional } from '../components/ui'
+import { FormularioMaterial } from './MaterialesPage'
 import { DetalleNotaCredito, NuevaNotaCredito } from './NotasCreditoPage'
 import { DetalleRemision, NuevaRemision } from './RemisionesPage'
 import { FichaTercero } from './TercerosPage'
@@ -150,6 +152,10 @@ export function VentasPage() {
             setViendo(anulada)
             void cargar()
           }}
+          onEliminada={() => {
+            setViendo(null)
+            void cargar()
+          }}
         />
       ) : null}
     </section>
@@ -179,11 +185,16 @@ export function NuevaVenta({
   const [guardando, setGuardando] = useState(false)
   const [cuenta, setCuenta] = useState<EstadoCuenta | null>(null)
   const [altaCliente, setAltaCliente] = useState(false)
+  const [altaMaterial, setAltaMaterial] = useState(false)
+  const [opcionesMaterial, setOpcionesMaterial] = useState<OpcionesMaterial | null>(null)
   const renglones = useRenglones()
   const totales = renglones.totales
   const cobro = useCobro(totales.total, opciones?.medios ?? [])
 
   useEffect(() => {
+    apiListar<OpcionesMaterial>('/productos/opciones')
+      .then(setOpcionesMaterial)
+      .catch(() => undefined)
     Promise.all([
       apiListar<VentaOpciones>('/ventas/opciones'),
       apiListar<Tercero[]>('/terceros?rol=cliente'),
@@ -252,6 +263,15 @@ export function NuevaVenta({
     )
     setClienteTexto(etiquetaCliente(nuevo))
     setAltaCliente(false)
+    setError(null)
+  }
+
+  function materialCreado(nuevo: Material) {
+    setMateriales((actuales) =>
+      [...actuales.filter((item) => item.id !== nuevo.id), nuevo].sort((a, b) => a.codigo.localeCompare(b.codigo, 'es')),
+    )
+    renglones.agregar(nuevo, lista)
+    setAltaMaterial(false)
     setError(null)
   }
 
@@ -471,6 +491,7 @@ export function NuevaVenta({
           materiales={materiales}
           lista={lista}
           avisarStock="Hay líneas que superan el stock registrado. Se puede facturar igual y el stock queda en negativo."
+          onNuevo={opcionesMaterial ? () => setAltaMaterial(true) : undefined}
         />
         <CuadroTotales totales={totales} />
         {condicion === 'CONTADO' && opciones?.cajaAbierta ? (
@@ -495,6 +516,14 @@ export function NuevaVenta({
       {altaCliente ? (
         <FichaTercero rol="cliente" tercero={null} onCerrar={() => setAltaCliente(false)} onGuardado={clienteCreado} />
       ) : null}
+      {altaMaterial && opcionesMaterial ? (
+        <FormularioMaterial
+          material={null}
+          opciones={opcionesMaterial}
+          onCerrar={() => setAltaMaterial(false)}
+          onGuardado={materialCreado}
+        />
+      ) : null}
     </Dialogo>
   )
 }
@@ -503,13 +532,16 @@ export function DetalleVenta({
   venta,
   onCerrar,
   onAnulada,
+  onEliminada,
 }: {
   venta: Venta
   onCerrar: () => void
   onAnulada: (venta: Venta) => void
+  onEliminada?: () => void
 }) {
   const [error, setError] = useState<string | null>(null)
   const [anulando, setAnulando] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
   const [remisiones, setRemisiones] = useState<Remision[]>([])
   const [pendientes, setPendientes] = useState<EntregaPendiente[]>([])
   const [remitiendo, setRemitiendo] = useState(false)
@@ -586,6 +618,31 @@ export function DetalleVenta({
       setError(causa instanceof Error ? causa.message : 'No se pudo anular la factura')
     } finally {
       setAnulando(false)
+    }
+  }
+
+  async function eliminar() {
+    if (!onEliminada) {
+      return
+    }
+    if (
+      !(await confirmar({
+        titulo: 'Eliminar factura anulada',
+        mensaje: `¿Eliminar definitivamente la factura ${venta.numeroComprobante}? Usalo solo si se anuló por un error de carga: desaparece del sistema junto con sus movimientos de stock y caja, y el número ${venta.numeroComprobante} queda libre para volver a cargarla. No se puede deshacer.`,
+        aceptar: 'Eliminar factura',
+        peligro: true,
+      }))
+    ) {
+      return
+    }
+    setEliminando(true)
+    try {
+      await apiEliminar(`/ventas/${venta.id}`)
+      onEliminada()
+    } catch (causa) {
+      setError(causa instanceof Error ? causa.message : 'No se pudo eliminar la factura')
+    } finally {
+      setEliminando(false)
     }
   }
 
@@ -751,6 +808,11 @@ export function DetalleVenta({
           {esAdmin && venta.estado === 'CONFIRMADO' ? (
             <button type="button" className="btn" disabled={anulando} onClick={() => void anular()}>
               Anular factura
+            </button>
+          ) : null}
+          {esAdmin && onEliminada && venta.estado === 'ANULADO' ? (
+            <button type="button" className="btn" disabled={eliminando} onClick={() => void eliminar()}>
+              Eliminar factura
             </button>
           ) : null}
           {venta.estado === 'CONFIRMADO' && porEntregar.length > 0 ? (
