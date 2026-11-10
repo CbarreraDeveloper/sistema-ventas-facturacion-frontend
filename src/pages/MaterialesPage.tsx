@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { apiActualizar, apiCrear, apiListar, cantidad, dinero, texto } from '../api/client'
-import type { Material, OpcionesMaterial } from '../api/types'
+import { apiActualizar, apiCrear, apiListar, cantidad, dinero, fechaHora, texto } from '../api/client'
+import type { Material, MovimientoStock, OpcionesMaterial, TipoMovimientoStock } from '../api/types'
 import { ControlPaginacion, usePaginacion } from '../components/Paginacion'
 import { Aviso, Barra, Campo, Dialogo, Monto, numeroOpcional, textoOpcional, valorInput } from '../components/ui'
 
@@ -16,6 +16,7 @@ export function MaterialesPage() {
   const [listo, setListo] = useState(false)
   const [editando, setEditando] = useState<Material | null | 'nuevo'>(null)
   const [ajustando, setAjustando] = useState<Material | null>(null)
+  const [historial, setHistorial] = useState<Material | null>(null)
 
   async function cargar() {
     try {
@@ -104,6 +105,9 @@ export function MaterialesPage() {
                   <button type="button" className="btn ghost" disabled={!material.controlaStock} onClick={() => setAjustando(material)}>
                     Stock
                   </button>
+                  <button type="button" className="btn ghost" disabled={!material.controlaStock} onClick={() => setHistorial(material)}>
+                    Historial
+                  </button>
                 </td>
               </tr>
             ))}
@@ -134,7 +138,85 @@ export function MaterialesPage() {
           }}
         />
       ) : null}
+      {historial ? <HistorialStock material={historial} onCerrar={() => setHistorial(null)} /> : null}
     </section>
+  )
+}
+
+const TIPOS_MOVIMIENTO: Record<TipoMovimientoStock, string> = {
+  APERTURA: 'Carga inicial',
+  COMPRA: 'Compra',
+  VENTA: 'Venta',
+  REMISION: 'Remisión',
+  DEVOLUCION: 'Devolución',
+  AJUSTE: 'Ajuste',
+  TRANSFERENCIA: 'Transferencia',
+}
+
+function HistorialStock({ material, onCerrar }: { material: Material; onCerrar: () => void }) {
+  const [movimientos, setMovimientos] = useState<MovimientoStock[]>([])
+  const [tipo, setTipo] = useState<TipoMovimientoStock | ''>('')
+  const [error, setError] = useState<string | null>(null)
+  const [listo, setListo] = useState(false)
+
+  useEffect(() => {
+    apiListar<MovimientoStock[]>(`/productos/${material.id}/movimientos`)
+      .then(setMovimientos)
+      .catch((causa) => setError(causa instanceof Error ? causa.message : 'No se pudo leer el historial'))
+      .finally(() => setListo(true))
+  }, [material.id])
+
+  const filtrados = tipo ? movimientos.filter((movimiento) => movimiento.tipo === tipo) : movimientos
+  const paginacion = usePaginacion(filtrados)
+
+  return (
+    <Dialogo clase="ancho" titulo={`Historial de ${material.codigo}`} onCerrar={onCerrar}>
+      <Aviso mensaje={error} />
+      <p className="ayuda">
+        {material.descripcion}. Existencia actual: {cantidad(material.existencia)}.
+      </p>
+      <label className="campo">
+        <span>Tipo de movimiento</span>
+        <select value={tipo} onChange={(event) => setTipo(event.target.value as TipoMovimientoStock | '')}>
+          <option value="">Todos</option>
+          {Object.entries(TIPOS_MOVIMIENTO).map(([valor, etiqueta]) => (
+            <option key={valor} value={valor}>
+              {etiqueta}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="tabla-contenedor bloque">
+        <table className="tabla lineas">
+          <thead>
+            <tr>
+              <th className="fecha">Fecha</th>
+              <th>Tipo</th>
+              <th>Detalle / motivo</th>
+              <th className="numero">Entrada</th>
+              <th className="numero">Salida</th>
+              <th className="numero">Saldo</th>
+              <th>Usuario</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginacion.filas.map((movimiento) => (
+              <tr key={movimiento.id}>
+                <td className="fecha">{fechaHora(movimiento.fecha)}</td>
+                <td>{TIPOS_MOVIMIENTO[movimiento.tipo]}</td>
+                <td>{texto(movimiento.detalle)}</td>
+                <td className="numero">{movimiento.entrada == null ? '—' : cantidad(movimiento.entrada)}</td>
+                <td className="numero">{movimiento.salida == null ? '—' : cantidad(movimiento.salida)}</td>
+                <td className="numero">{cantidad(movimiento.saldo)}</td>
+                <td>{texto(movimiento.usuario)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <ControlPaginacion paginacion={paginacion} />
+      {listo && filtrados.length === 0 ? <p className="vacio">No hay movimientos para mostrar.</p> : null}
+    </Dialogo>
   )
 }
 
