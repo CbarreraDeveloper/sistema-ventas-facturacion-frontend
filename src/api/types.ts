@@ -25,6 +25,19 @@ export type Material = {
   activo: boolean
 }
 
+export type TipoMovimientoStock = 'APERTURA' | 'COMPRA' | 'VENTA' | 'REMISION' | 'DEVOLUCION' | 'AJUSTE' | 'TRANSFERENCIA'
+
+export type MovimientoStock = {
+  id: number
+  fecha: string
+  tipo: TipoMovimientoStock
+  detalle: string | null
+  entrada: number | null
+  salida: number | null
+  saldo: number
+  usuario: string | null
+}
+
 export type OpcionCatalogo = {
   id: number
   codigo: string | null
