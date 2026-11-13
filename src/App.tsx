@@ -2,22 +2,36 @@ import { useEffect, useState } from 'react'
 import { apiEnviar, AUTH_EVENT, cargarSesion, guardarSesion } from './api/client'
 import type { Sesion, Usuario } from './api/types'
 import { Confirmaciones } from './components/Confirmacion'
-import { AppShell } from './layout/AppShell'
+import { AppShell, esRutaRrhh } from './layout/AppShell'
 import { CambiarClavePage, LoginPage } from './pages/AccesoPage'
 import { CajaPage } from './pages/CajaPage'
 import { ComprasPage } from './pages/ComprasPage'
 import { CuentasPage } from './pages/CuentasPage'
 import { CuentasPagarPage } from './pages/CuentasPagarPage'
+import { AdelantosPage } from './pages/AdelantosPage'
+import { AguinaldoPage } from './pages/AguinaldoPage'
+import { LiquidacionesFinalesPage } from './pages/LiquidacionesFinalesPage'
+import { PlanillaMtessPage } from './pages/PlanillaMtessPage'
+import { LiquidacionesPage } from './pages/LiquidacionesPage'
+import { AsistenciaPage } from './pages/AsistenciaPage'
+import { CasualesPage } from './pages/CasualesPage'
+import { ComisionesPage } from './pages/ComisionesPage'
+import { EmpleadosPage } from './pages/EmpleadosPage'
 import { EmpresaPage } from './pages/EmpresaPage'
 import { InicioPage } from './pages/InicioPage'
+import { LicenciasPage } from './pages/LicenciasPage'
 import { MaterialesPage } from './pages/MaterialesPage'
 import { NotasCreditoPage } from './pages/NotasCreditoPage'
 import { PresupuestosPage } from './pages/PresupuestosPage'
 import { RemisionesPage } from './pages/RemisionesPage'
 import { ReportesPage } from './pages/ReportesPage'
+import { RrhhInicioPage } from './pages/RrhhInicioPage'
+import { RrhhReportesPage } from './pages/RrhhReportesPage'
+import { ConfiguracionRrhhPage } from './pages/ConfiguracionRrhhPage'
 import { ClientesPage, ProveedoresPage } from './pages/TercerosPage'
 import { UsuariosPage } from './pages/UsuariosPage'
 import { VentasPage } from './pages/VentasPage'
+import { ViaticosPage } from './pages/ViaticosPage'
 
 function leerRuta(): string {
   const hash = window.location.hash.replace(/^#/, '')
@@ -27,7 +41,52 @@ function leerRuta(): string {
   return hash.startsWith('/') ? hash : '/'
 }
 
-function Pantalla({ ruta }: { ruta: string }) {
+function Pantalla({ ruta, esAdmin }: { ruta: string; esAdmin: boolean }) {
+  if (esRutaRrhh(ruta)) {
+    if (!esAdmin) {
+      return null
+    }
+    if (ruta === '/rrhh/empleados') {
+      return <EmpleadosPage />
+    }
+    if (ruta === '/rrhh/casuales') {
+      return <CasualesPage />
+    }
+    if (ruta === '/rrhh/asistencia') {
+      return <AsistenciaPage />
+    }
+    if (ruta === '/rrhh/licencias') {
+      return <LicenciasPage />
+    }
+    if (ruta === '/rrhh/adelantos') {
+      return <AdelantosPage />
+    }
+    if (ruta === '/rrhh/liquidaciones') {
+      return <LiquidacionesPage />
+    }
+    if (ruta === '/rrhh/aguinaldo') {
+      return <AguinaldoPage />
+    }
+    if (ruta === '/rrhh/liquidaciones-finales') {
+      return <LiquidacionesFinalesPage />
+    }
+    if (ruta === '/rrhh/mtess') {
+      return <PlanillaMtessPage />
+    }
+    if (ruta === '/rrhh/viaticos') {
+      return <ViaticosPage />
+    }
+    if (ruta === '/rrhh/comisiones') {
+      return <ComisionesPage />
+    }
+    if (ruta === '/rrhh/reportes') {
+      return <RrhhReportesPage />
+    }
+    if (ruta === '/rrhh/configuracion') {
+      return <ConfiguracionRrhhPage />
+    }
+    return <RrhhInicioPage />
+  }
   if (ruta === '/usuarios') {
     return <UsuariosPage />
   }
@@ -118,6 +177,13 @@ export default function App() {
     }
   }, [sesion])
 
+  const esAdmin = sesion?.roles.includes('ADMIN') ?? false
+  useEffect(() => {
+    if (sesion && !esAdmin && esRutaRrhh(ruta)) {
+      window.location.hash = '#/'
+    }
+  }, [sesion, esAdmin, ruta])
+
   if (!sesion) {
     return <LoginPage onSesion={setSesion} />
   }
@@ -128,7 +194,7 @@ export default function App() {
   return (
     <>
       <AppShell ruta={ruta}>
-        <Pantalla ruta={ruta} />
+        <Pantalla ruta={ruta} esAdmin={esAdmin} />
       </AppShell>
       <Confirmaciones />
     </>

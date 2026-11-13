@@ -88,6 +88,27 @@ a {
   min-width: 0;
 }
 
+.marca-inicio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.marca-inicio:focus-visible {
+  outline: 2px solid #d7c4a3;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
 .marca strong {
   display: block;
   margin-top: 6px;
@@ -150,6 +171,67 @@ a {
   box-shadow: inset 3px 0 0 #9a3e32;
 }
 
+.grupo-menu {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.grupo-menu + .grupo-menu {
+  margin-top: 10px;
+}
+
+.lado .grupo-menu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 22px;
+}
+
+.lado nav .icono {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.75;
+  opacity: 0.85;
+}
+
+.lado nav a.activo .icono {
+  opacity: 1;
+}
+
+.grupo-titulo .icono.flecha {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+}
+
+.grupo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: #d7c4a3;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.grupo-titulo:hover {
+  background: rgb(255 255 255 / 6%);
+}
+
+.grupo-titulo.actual {
+  color: #f7f4ee;
+}
+
 .lado-pie {
   display: flex;
   align-items: center;
@@ -171,6 +253,24 @@ a {
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
+}
+
+.mesa.vacia {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.marca-agua img,
+.marca-agua video {
+  width: min(420px, 60vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+  opacity: 0.08;
+  filter: grayscale(1);
+  user-select: none;
+  pointer-events: none;
 }
 
 .eyebrow,
@@ -697,6 +797,126 @@ a {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+[hidden] {
+  display: none !important;
+}
+
+.semana-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.tabla.asistencia td {
+  vertical-align: middle;
+}
+
+.tabla.asistencia th.hoy {
+  background: #9a3e32;
+}
+
+.tabla.asistencia td.hoy {
+  background: #fbf3e8;
+}
+
+.tabla .sub {
+  display: block;
+  color: #7a6e63;
+  font-size: 0.75rem;
+}
+
+.dia-asistencia {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  min-height: 34px;
+  padding: 2px 6px;
+  border: 1px dashed #d5cbbd;
+  border-radius: 6px;
+  background: #fffdf9;
+  color: #9a8f84;
+  font: inherit;
+  font-weight: 650;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.dia-asistencia small {
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.dia-asistencia:hover {
+  border-color: #1b3142;
+}
+
+.dia-asistencia.presente {
+  border-style: solid;
+  border-color: #b9d3b3;
+  background: #e3efe0;
+  color: #2f5d2a;
+}
+
+.dia-asistencia.ausente {
+  border-style: solid;
+  border-color: #e3b5ad;
+  background: #f6dcd7;
+  color: #8a2f24;
+}
+
+.dia-asistencia.justificada {
+  border-style: solid;
+  border-color: #e6cf9a;
+  background: #faefd2;
+  color: #7a5410;
+}
+
+.dia-asistencia.vacaciones {
+  border-style: solid;
+  border-color: #b3c9de;
+  background: #dfeaf5;
+  color: #1f4a70;
+}
+
+.estado.vacaciones {
+  background: #dfeaf5;
+  color: #1f4a70;
+}
+
+.estado.permiso {
+  background: #faefd2;
+  color: #7a5410;
+}
+
+.estado.reposo {
+  background: #efe3f3;
+  color: #5b2f6b;
+}
+
+.dia-asistencia.fuera {
+  border-color: transparent;
+  background: none;
+  cursor: default;
+}
+
+.leyenda .dia-asistencia {
+  min-width: 28px;
+  min-height: 22px;
+  cursor: default;
+}
+
+.opciones-estado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 14px;
+}
+
+.span-dos {
+  grid-column: span 2;
+}
+
 .cobro {
   margin-top: 12px;
 }
@@ -864,6 +1084,16 @@ a {
 .fila-total td {
   font-weight: 700;
   background: #f3efe6;
+}
+
+.fila-grupo td {
+  background: #f7f4ee;
+  padding-top: 10px;
+}
+
+.fila-subtotal td {
+  font-weight: 600;
+  border-bottom: 2px solid #e4ddcf;
 }
 
 .cintillo {
@@ -1095,6 +1325,10 @@ a {
     overflow: visible;
   }
 
+  .mesa.vacia {
+    min-height: 70dvh;
+  }
+
   .grilla.tres,
   .totales,
   .totales.cuatro {
@@ -1254,4 +1488,135 @@ a {
   .acceso h1 {
     font-size: 1.6rem;
   }
+}
+
+.dialogo input.porcentaje {
+  width: 5.5rem;
+  text-align: right;
+}
+
+.dialogo td input.monto {
+  text-align: right;
+}
+
+.ayuda.alerta {
+  color: #a33a2c;
+}
+
+.tablero.cuatro {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tablero.cuatro .tarjeta strong {
+  font-size: 1.6rem;
+}
+
+.tarjeta .sub,
+.pendientes .sub {
+  display: block;
+  margin-top: 2px;
+  color: #7a6e63;
+  font-size: 0.78rem;
+}
+
+.pendientes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pendientes li {
+  border-bottom: 1px solid #efe7db;
+}
+
+.pendientes li:last-child {
+  border-bottom: 0;
+}
+
+.pendientes a,
+.pendientes li > div {
+  display: block;
+  padding: 9px 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pendientes a:hover {
+  background: #f8f1e7;
+}
+
+.pendientes strong {
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .tablero.cuatro {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .tablero.cuatro {
+    grid-template-columns: 1fr;
+  }
+}
+
+.aviso.advertencia {
+  background: #fbf0d6;
+  color: #6b4a0f;
+}
+
+.aviso ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.tabla .resta {
+  color: #a33a2c;
+}
+
+.tabla.planilla th.numero {
+  white-space: normal;
+  max-width: 110px;
+}
+
+.tabla.lineas-recibo {
+  width: 100%;
+  margin: 14px 0;
+}
+
+.tabla.lineas-recibo tfoot td {
+  font-weight: 650;
+}
+
+.tabla.lineas-recibo tfoot tr.neto td {
+  font-size: 1.05rem;
+  background: #f4efe6;
+}
+
+.linea-manual {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.6fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 720px) {
+  .linea-manual {
+    grid-template-columns: 1fr;
+  }
+}
+
+.comision-venta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 8px 0 12px;
+}
+
+.comision-venta .ayuda {
+  margin: 0 auto 0 0;
 }

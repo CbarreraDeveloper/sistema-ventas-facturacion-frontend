@@ -97,11 +97,13 @@ export function Monto({
   valor,
   required,
   decimales = 2,
+  onValor,
 }: {
   name: string
   valor?: number | null
   required?: boolean
   decimales?: number
+  onValor?: (valor: number | null) => void
 }) {
   const [texto, setTexto] = useState(() => textoMonto(valor, decimales))
   return (
@@ -112,7 +114,11 @@ export function Monto({
       autoComplete="off"
       required={required}
       value={texto}
-      onChange={(event) => setTexto(mascaraMonto(event.target.value, decimales))}
+      onChange={(event) => {
+        const nuevo = mascaraMonto(event.target.value, decimales)
+        setTexto(nuevo)
+        onValor?.(numeroOpcional(nuevo))
+      }}
     />
   )
 }
