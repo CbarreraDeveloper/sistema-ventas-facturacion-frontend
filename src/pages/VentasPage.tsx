@@ -8,6 +8,7 @@ import type {
   Material,
   NotaCredito,
   Obra,
+  OpcionCatalogo,
   OpcionesMaterial,
   Presupuesto,
   PuntoVenta,
@@ -187,9 +188,12 @@ export function NuevaVenta({
   const [altaCliente, setAltaCliente] = useState(false)
   const [altaMaterial, setAltaMaterial] = useState(false)
   const [opcionesMaterial, setOpcionesMaterial] = useState<OpcionesMaterial | null>(null)
+  const [comision, setComision] = useState<ComisionElegida | null>(null)
+  const [comisionando, setComisionando] = useState(false)
   const renglones = useRenglones()
   const totales = renglones.totales
   const cobro = useCobro(totales.total, opciones?.medios ?? [])
+  const montoComision = comision ? calcularComision(totales.total, comision.porcentaje) : 0
 
   useEffect(() => {
     apiListar<OpcionesMaterial>('/productos/opciones')
@@ -328,7 +332,9 @@ export function NuevaVenta({
     if (
       !(await confirmar({
         titulo: 'Emitir factura',
-        mensaje: `¿Emitir la factura ${punto?.prefijo ?? ''}${String(numero).padStart(7, '0')} por Gs. ${dinero(totales.total)} a ${cliente?.razonSocial ?? SIN_NOMBRE}?`,
+        mensaje: `¿Emitir la factura ${punto?.prefijo ?? ''}${String(numero).padStart(7, '0')} por Gs. ${dinero(totales.total)} a ${cliente?.razonSocial ?? SIN_NOMBRE}?${
+          comision ? ` Se comisiona a ${comision.empleado} con Gs. ${dinero(montoComision)} (${porcentajeTexto(comision.porcentaje)}).` : ''
+        }`,
         aceptar: 'Emitir factura',
       }))
     ) {
@@ -350,6 +356,7 @@ export function NuevaVenta({
         notaRemision: textoOpcional((form.elements.namedItem('notaRemision') as HTMLInputElement).value.trim()),
         items: renglones.items(),
         pagos,
+        comision: comision ? { empleadoId: comision.empleadoId, porcentaje: comision.porcentaje } : null,
       })
       onGuardada(venta)
     } catch (causa) {
@@ -494,6 +501,28 @@ export function NuevaVenta({
           onNuevo={opcionesMaterial ? () => setAltaMaterial(true) : undefined}
         />
         <CuadroTotales totales={totales} />
+        <div className="comision-venta">
+          {comision ? (
+            <p className="ayuda">
+              Comisión para <strong>{comision.empleado}</strong>: {porcentajeTexto(comision.porcentaje)} de Gs.{' '}
+              {dinero(totales.total)} = <strong>Gs. {dinero(montoComision)}</strong>
+            </p>
+          ) : null}
+          <button
+            type="button"
+            className="btn"
+            disabled={!opciones || opciones.comisionistas.length === 0}
+            title={opciones && opciones.comisionistas.length === 0 ? 'No hay empleados activos cargados en RR.HH.' : undefined}
+            onClick={() => setComisionando(true)}
+          >
+            {comision ? 'Cambiar comisión' : 'Comisionar a empleado'}
+          </button>
+          {comision ? (
+            <button type="button" className="btn" onClick={() => setComision(null)}>
+              Quitar comisión
+            </button>
+          ) : null}
+        </div>
         {condicion === 'CONTADO' && opciones?.cajaAbierta ? (
           <SeccionCobro cobro={cobro} detalle="El efectivo es lo que falta para completar el total después de los otros medios." />
         ) : null}
@@ -524,6 +553,117 @@ export function NuevaVenta({
           onGuardado={materialCreado}
         />
       ) : null}
+      {comisionando && opciones ? (
+        <ComisionarEmpleado
+          comisionistas={opciones.comisionistas}
+          total={totales.total}
+          actual={comision}
+          onCerrar={() => setComisionando(false)}
+          onAceptar={(elegida) => {
+            setComision(elegida)
+            setComisionando(false)
+          }}
+        />
+      ) : null}
+    </Dialogo>
+  )
+}
+
+type ComisionElegida = {
+  empleadoId: number
+  empleado: string
+  porcentaje: number
+}
+
+function calcularComision(total: number, porcentaje: number): number {
+  return Math.round((total * porcentaje) / 100)
+}
+
+function porcentajeTexto(valor: number): string {
+  return `${valor.toLocaleString('es-PY', { maximumFractionDigits: 2 })} %`
+}
+
+function ComisionarEmpleado({
+  comisionistas,
+  total,
+  actual,
+  onCerrar,
+  onAceptar,
+}: {
+  comisionistas: OpcionCatalogo[]
+  total: number
+  actual: ComisionElegida | null
+  onCerrar: () => void
+  onAceptar: (comision: ComisionElegida) => void
+}) {
+  const [empleadoId, setEmpleadoId] = useState(actual ? String(actual.empleadoId) : '')
+  const [porcentajeEscrito, setPorcentajeEscrito] = useState(actual ? String(actual.porcentaje).replace('.', ',') : '')
+  const [error, setError] = useState<string | null>(null)
+  const limpio = porcentajeEscrito.trim().replace(',', '.')
+  const porcentaje = limpio ? Number(limpio) : Number.NaN
+  const valido = Number.isFinite(porcentaje) && porcentaje > 0 && porcentaje <= 100
+
+  function aceptar(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    event.stopPropagation()
+    const empleado = comisionistas.find((item) => String(item.id) === empleadoId)
+    if (!empleado) {
+      setError('Elegí el empleado')
+      return
+    }
+    if (!valido) {
+      setError('El porcentaje debe ser mayor a 0 y hasta 100')
+      return
+    }
+    onAceptar({ empleadoId: empleado.id, empleado: empleado.nombre, porcentaje: Math.round(porcentaje * 100) / 100 })
+  }
+
+  return (
+    <Dialogo titulo="Comisionar a empleado" onCerrar={onCerrar}>
+      <form onSubmit={aceptar}>
+        <Aviso mensaje={error} />
+        <div className="grilla">
+          <Campo etiqueta="Empleado">
+            <select value={empleadoId} onChange={(event) => setEmpleadoId(event.target.value)} required autoFocus>
+              <option value="">Elegí el empleado</option>
+              {comisionistas.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nombre}
+                  {item.codigo ? ` · ${item.codigo}` : ''}
+                </option>
+              ))}
+            </select>
+          </Campo>
+          <Campo etiqueta="Porcentaje de comisión">
+            <input
+              inputMode="decimal"
+              maxLength={6}
+              value={porcentajeEscrito}
+              onChange={(event) => setPorcentajeEscrito(event.target.value.replace(/[^\d.,]/g, ''))}
+              placeholder="Ej.: 5"
+              required
+            />
+          </Campo>
+        </div>
+        <p className="ayuda">
+          Total de la venta Gs. {dinero(total)}
+          {valido ? (
+            <>
+              {' '}
+              · Comisión <strong>Gs. {dinero(calcularComision(total, porcentaje))}</strong>
+            </>
+          ) : null}
+          . Se recalcula si cambiás las líneas antes de emitir y se suma en RR.HH. › Comisiones del período.
+        </p>
+        <div className="dialogo-acciones">
+          <button className="btn" type="button" onClick={onCerrar}>
+            Cancelar
+          </button>
+          <button className="btn primary" type="submit">
+            Aceptar
+          </button>
+        </div>
+      </form>
     </Dialogo>
   )
 }
@@ -722,6 +862,12 @@ export function DetalleVenta({
             {venta.pagos
               .map((pago) => `${pago.medio} Gs. ${dinero(pago.monto)}${pago.referencia ? ` (${pago.referencia})` : ''}`)
               .join(' · ')}
+          </p>
+        ) : null}
+        {venta.comision ? (
+          <p className="ayuda">
+            Comisionada a {venta.comision.empleado}: {porcentajeTexto(venta.comision.porcentaje)} de Gs.{' '}
+            {dinero(venta.comision.base)} = Gs. {dinero(venta.comision.monto)}
           </p>
         ) : null}
         {venta.observacion ? <p className="ayuda">{venta.observacion}</p> : null}

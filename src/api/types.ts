@@ -38,6 +38,390 @@ export type MovimientoStock = {
   usuario: string | null
 }
 
+export type ModalidadPago = 'SEMANAL' | 'QUINCENAL' | 'MENSUAL'
+
+export type EstadoCivil = 'SOLTERO' | 'CASADO' | 'UNION_DE_HECHO' | 'DIVORCIADO' | 'VIUDO'
+
+export type Empleado = {
+  id: number
+  nombres: string
+  apellidos: string
+  documento: string
+  fechaNacimiento: string | null
+  sexo: 'M' | 'F' | null
+  estadoCivil: EstadoCivil | null
+  nacionalidad: string | null
+  hijosMenores: number | null
+  profesion: string | null
+  telefono: string | null
+  email: string | null
+  direccion: string | null
+  ciudad: string | null
+  contactoEmergencia: string | null
+  telefonoEmergencia: string | null
+  cargo: string
+  fechaIngreso: string
+  modalidadPago: ModalidadPago
+  sueldoBase: number
+  valorDia: number | null
+  percibeComision: boolean
+  usuarioId: number | null
+  usuario: string | null
+  aseguradoIps: boolean
+  numeroIps: string | null
+  banco: string | null
+  numeroCuenta: string | null
+  fechaEgreso: string | null
+  motivoEgreso: string | null
+  observacion: string | null
+  activo: boolean
+}
+
+export type EmpleadoSueldo = {
+  id: number
+  desde: string
+  modalidadPago: ModalidadPago
+  sueldoBase: number
+  usuario: string | null
+}
+
+export type OpcionesEmpleado = {
+  cargos: string[]
+  usuarios: OpcionCatalogo[]
+}
+
+export type EstadoAsistencia = 'PRESENTE' | 'AUSENTE' | 'MEDIO_DIA' | 'PERMISO' | 'REPOSO' | 'VACACIONES'
+
+export type Asistencia = {
+  id: number
+  empleadoId: number
+  fecha: string
+  estado: EstadoAsistencia
+  justificada: boolean
+  horasExtra: number
+  diasADescontar: number
+  observacion: string | null
+  registradoPor: string | null
+  licenciaId: number | null
+}
+
+export type TipoLicencia = 'VACACIONES' | 'PERMISO' | 'REPOSO'
+
+export type Licencia = {
+  id: number
+  empleadoId: number
+  empleado: string
+  cargo: string | null
+  tipo: TipoLicencia
+  desde: string
+  hasta: string
+  dias: number
+  conGoce: boolean
+  motivo: string | null
+  registradoPor: string | null
+}
+
+export type SaldoVacaciones = {
+  empleadoId: number
+  empleado: string
+  cargo: string | null
+  fechaIngreso: string
+  antiguedad: number
+  diasPorAnio: number
+  cuentaDesde: string
+  corresponden: number
+  tomadas: number
+  programadas: number
+  saldo: number
+  proximoAniversario: string
+  diasProximoAniversario: number
+}
+
+export type TipoAdelanto = 'ADELANTO' | 'PRESTAMO'
+
+export type AdelantoCuota = {
+  id: number
+  numero: number
+  mes: string
+  monto: number
+  fechaCobro: string | null
+  origenCobro: 'MANUAL' | 'LIQUIDACION' | 'LIQUIDACION_FINAL' | null
+}
+
+export type Adelanto = {
+  id: number
+  empleadoId: number
+  empleado: string
+  cargo: string
+  tipo: TipoAdelanto
+  fecha: string
+  monto: number
+  cobrado: number
+  saldo: number
+  observacion: string | null
+  cuotas: AdelantoCuota[]
+  registradoPor: string | null
+}
+
+export type ConceptoViatico = 'COMBUSTIBLE' | 'COMIDA' | 'PASAJE' | 'HOSPEDAJE' | 'OTRO'
+
+export type FormaPagoViatico = 'APARTE' | 'LIQUIDACION'
+
+export type Viatico = {
+  id: number
+  empleadoId: number
+  empleado: string
+  cargo: string
+  fecha: string
+  concepto: ConceptoViatico
+  detalle: string | null
+  monto: number
+  comprobante: string | null
+  formaPago: FormaPagoViatico
+  fechaPago: string | null
+  registradoPor: string | null
+}
+
+export type EstadoLiquidacion = 'BORRADOR' | 'CONFIRMADA' | 'ANULADA'
+
+export type FormaPagoSueldo = 'EFECTIVO' | 'TRANSFERENCIA'
+
+export type TipoLineaSueldo =
+  | 'SUELDO'
+  | 'HORAS_EXTRA'
+  | 'COMISION'
+  | 'VIATICO'
+  | 'OTRO_INGRESO'
+  | 'AUSENCIA'
+  | 'ADELANTO'
+  | 'PRESTAMO'
+  | 'IPS'
+  | 'OTRO_DESCUENTO'
+
+export type MovimientoSueldo = {
+  liquidacionId: number
+  modalidad: ModalidadPago
+  desde: string
+  hasta: string
+  tipo: TipoLineaSueldo
+  descripcion: string
+  monto: number
+  haber: boolean
+}
+
+export type ReporteMovimientosRrhh = {
+  desde: string
+  hasta: string
+  tipo: TipoLineaSueldo | null
+  liquidaciones: number
+  funcionarios: {
+    empleadoId: number
+    empleado: string
+    documento: string | null
+    cargo: string | null
+    movimientos: MovimientoSueldo[]
+    haberes: number
+    descuentos: number
+    neto: number
+  }[]
+  conceptos: { tipo: TipoLineaSueldo; haber: boolean; cantidad: number; total: number }[]
+  haberes: number
+  descuentos: number
+  neto: number
+}
+
+export type FilaPlanillaRrhh = {
+  empleadoId: number | null
+  empleado: string
+  documento: string | null
+  cargo: string | null
+  recibos: number
+  sueldo: number
+  ausencias: number
+  horasExtra: number
+  viaticos: number
+  comisionesOtros: number
+  adelantosPrestamos: number
+  ips: number
+  otrosDescuentos: number
+  haberes: number
+  descuentos: number
+  neto: number
+}
+
+export type ReportePlanillaRrhh = {
+  desde: string
+  hasta: string
+  liquidaciones: { id: number; modalidad: ModalidadPago; desde: string; hasta: string; recibos: number; neto: number }[]
+  filas: FilaPlanillaRrhh[]
+  totales: FilaPlanillaRrhh
+}
+
+export type LiquidacionResumen = {
+  id: number
+  modalidad: ModalidadPago
+  desde: string
+  hasta: string
+  estado: EstadoLiquidacion
+  empleados: number
+  pagados: number
+  totalNeto: number
+  confirmadaEn: string | null
+  registradoPor: string | null
+}
+
+export type LineaSueldo = {
+  id: number
+  tipo: TipoLineaSueldo
+  descripcion: string
+  monto: number
+  haber: boolean
+  sePuedeQuitar: boolean
+}
+
+export type ReciboSueldo = {
+  id: number
+  empleadoId: number
+  empleado: string
+  documento: string
+  cargo: string | null
+  numeroIps: string | null
+  sueldoBase: number
+  valorDia: number
+  haberes: number
+  descuentos: number
+  neto: number
+  fechaPago: string | null
+  formaPago: FormaPagoSueldo | null
+  lineas: LineaSueldo[]
+}
+
+export type Liquidacion = {
+  id: number
+  modalidad: ModalidadPago
+  desde: string
+  hasta: string
+  estado: EstadoLiquidacion
+  confirmadaEn: string | null
+  totalHaberes: number
+  totalDescuentos: number
+  totalNeto: number
+  recibos: ReciboSueldo[]
+}
+
+export type Aguinaldo = {
+  id: number
+  anio: number
+  empleadoId: number
+  empleado: string
+  documento: string
+  cargo: string | null
+  desde: string
+  hasta: string
+  remuneraciones: number
+  otrasRemuneraciones: number
+  notaOtras: string | null
+  base: number
+  monto: number
+  fechaPago: string | null
+  formaPago: FormaPagoSueldo | null
+  meses: { mes: number; remuneraciones: number }[]
+  registradoPor: string | null
+}
+
+export type CalculoAguinaldo = {
+  aguinaldos: Aguinaldo[]
+  avisos: string[]
+}
+
+export type CausaEgreso = 'DESPIDO_INJUSTIFICADO' | 'DESPIDO_JUSTIFICADO' | 'RENUNCIA' | 'MUTUO_ACUERDO'
+
+export type ConceptoFinal =
+  | 'VACACIONES_CAUSADAS'
+  | 'VACACIONES_PROPORCIONALES'
+  | 'AGUINALDO_PROPORCIONAL'
+  | 'PREAVISO'
+  | 'INDEMNIZACION'
+  | 'OTRO_INGRESO'
+  | 'IPS'
+  | 'SALDO_ADELANTO'
+  | 'OTRO_DESCUENTO'
+
+export type LiquidacionFinal = {
+  id: number
+  empleadoId: number
+  empleado: string
+  documento: string
+  cargo: string | null
+  numeroIps: string | null
+  fechaIngreso: string
+  fechaEgreso: string
+  antiguedad: string
+  causa: CausaEgreso
+  causaEtiqueta: string
+  motivo: string | null
+  preavisoOtorgado: boolean
+  salarioPromedio: number
+  salarioDiarioAcordado: number | null
+  salarioDiario: number
+  diasVacacionesAcordados: number | null
+  otrasRemuneraciones: number
+  notaOtras: string | null
+  haberes: number
+  descuentos: number
+  neto: number
+  fechaPago: string | null
+  formaPago: FormaPagoSueldo | null
+  lineas: {
+    id: number
+    concepto: ConceptoFinal
+    descripcion: string
+    dias: number | null
+    monto: number
+    haber: boolean
+    manual: boolean
+  }[]
+  avisos: string[]
+  registradoPor: string | null
+}
+
+export type ModalidadCasual = 'JORNADA' | 'SEMANA'
+
+export type VendedorCasual = {
+  id: number
+  nombre: string
+  documento: string
+  telefono: string | null
+  servicios: number
+  ultimoServicio: string | null
+}
+
+export type ServicioCasual = {
+  id: number
+  vendedorId: number
+  nombre: string
+  documento: string
+  telefono: string | null
+  modalidad: ModalidadCasual
+  desde: string
+  hasta: string
+  montoAcordado: number
+  ventas: VentaComision[]
+  ventaTotal: number
+  comision: number
+  total: number
+  fechaPago: string | null
+  medioPago: string | null
+  observacion: string | null
+  registradoPor: string | null
+}
+
+export type VentaComision = {
+  porcentaje: number
+  venta: number
+  comision: number
+}
+
 export type OpcionCatalogo = {
   id: number
   codigo: string | null
@@ -163,6 +547,7 @@ export type Venta = {
   usuario: string | null
   lineas: VentaLinea[]
   pagos: PagoLinea[]
+  comision?: ComisionVenta | null
 }
 
 export type PagoLinea = {
@@ -378,6 +763,15 @@ export type VentaOpciones = {
   listas: OpcionCatalogo[]
   medios: OpcionCatalogo[]
   cajaAbierta: boolean
+  comisionistas: OpcionCatalogo[]
+}
+
+export type ComisionVenta = {
+  empleadoId: number
+  empleado: string
+  porcentaje: number
+  base: number
+  monto: number
 }
 
 export type Empresa = {
@@ -693,4 +1087,116 @@ export type EntregaPendiente = {
   facturado: number
   remitido: number
   pendiente: number
+}
+
+export type Cargo = {
+  id: number
+  nombre: string
+  activo: boolean
+  empleados: number
+  categoriaMtess: CategoriaMtess
+}
+
+export type ReporteTablaRrhh = {
+  titulo: string
+  detalle: string
+  desde: string
+  hasta: string
+  columnas: { titulo: string; tipo: 'TEXTO' | 'FECHA' | 'MONTO' | 'CANTIDAD' | 'PORCENTAJE' }[]
+  filas: (string | number | null)[][]
+  totales: (string | number | null)[] | null
+  avisos: string[]
+}
+
+export type Jornada = 'COMPLETA' | 'MEDIA' | 'NO_LABORAL'
+
+export type ConfiguracionRrhh = {
+  jornadas: Jornada[]
+  horasJornada: number
+  diasPorSemana: number
+}
+
+export type ConceptoSueldo = {
+  id: number
+  nombre: string
+  haber: boolean
+  monto: number | null
+  activo: boolean
+}
+
+export type CategoriaMtess = 'JEFE' | 'EMPLEADO' | 'OBRERO'
+
+export type DatosMtess = {
+  numeroPatronal: string | null
+  horarioTrabajo: string | null
+}
+
+export type PlanillaMtess = {
+  anio: number
+  numeroPatronal: string | null
+  empleados: {
+    empleadoId: number
+    empleado: string
+    documento: string
+    cargo: string
+    categoria: CategoriaMtess
+    menor: boolean
+    sexo: 'M' | 'F' | null
+    fechaEntrada: string
+    fechaSalida: string | null
+    importeUnitario: number
+    horas: number
+    salarios: number
+    horasExtra: number
+    extras: number
+    aguinaldo: number
+    beneficios: number
+    vacaciones: number
+    totalGeneral: number
+  }[]
+  resumen: {
+    orden: number
+    concepto: string
+    supJefesVarones: number
+    supJefesMujeres: number
+    empleadosVarones: number
+    empleadosMujeres: number
+    obrerosVarones: number
+    obrerosMujeres: number
+    menoresVarones: number
+    menoresMujeres: number
+  }[]
+  avisos: string[]
+}
+
+export type EstadoComision = 'PENDIENTE' | 'EN_LIQUIDACION' | 'LIQUIDADA'
+
+export type Comision = {
+  id: number
+  empleadoId: number
+  empleado: string
+  cargo: string
+  usuario: string | null
+  desde: string
+  hasta: string
+  ventas: number
+  notasCredito: number
+  calculada: number
+  ajuste: number
+  motivoAjuste: string | null
+  total: number
+  estado: EstadoComision
+  fechaLiquidada: string | null
+  detalles: { rubro: string; porcentaje: number; ventas: number; notasCredito: number; comision: number }[]
+  registradoPor: string | null
+}
+
+export type CalculoComisiones = {
+  comisiones: Comision[]
+  avisos: string[]
+}
+
+export type TasasComision = {
+  general: number | null
+  rubros: { rubroId: number; rubro: string; porcentaje: number | null }[]
 }

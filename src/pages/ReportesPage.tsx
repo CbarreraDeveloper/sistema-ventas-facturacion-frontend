@@ -48,7 +48,7 @@ function condicion(valor: 'CONTADO' | 'CREDITO'): string {
   return valor === 'CREDITO' ? 'Crédito' : 'Contado'
 }
 
-function useReporte<T>(path: string) {
+export function useReporte<T>(path: string) {
   const [estado, setEstado] = useState<{ path: string; datos: T | null; error: string | null }>({ path: '', datos: null, error: null })
 
   useEffect(() => {
